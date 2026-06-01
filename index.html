@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Láminas Panini 2026 · Tienda</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --navy:#0a1b3d; --navy2:#122554; --gold:#c8a84b; --gold2:#e8c86a;
+  --green:#2e7d32; --green2:#43a047; --red:#c62828;
+  --white:#ffffff; --grey:#e0e0e0; --grey2:#f5f5f5; --grey3:#9e9e9e;
+  --dark:#1a1a2e; --bg:#0d1117; --card:#161b27; --card2:#1e2535;
+  --border:rgba(200,168,75,0.2); --shadow:0 4px 24px rgba(0,0,0,0.4);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--white);min-height:100vh;overflow-x:hidden}
+
+/* HEADER */
+.header{background:linear-gradient(135deg,var(--navy) 0%,#1a2d5a 100%);border-bottom:2px solid var(--gold);position:sticky;top:0;z-index:100;box-shadow:0 2px 20px rgba(0,0,0,0.5)}
+.header-inner{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;max-width:900px;margin:0 auto}
+.header-title h1{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--gold);line-height:1}
+.header-title span{font-size:10px;color:rgba(255,255,255,0.5);letter-spacing:1px;text-transform:uppercase}
+.cart-btn{position:relative;background:var(--gold);color:var(--navy);border:none;border-radius:12px;padding:10px 16px;font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all 0.2s}
+.cart-btn:active{transform:scale(0.96)}
+.cart-badge{position:absolute;top:-6px;right:-6px;background:var(--red);color:white;border-radius:50%;width:20px;height:20px;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+
+/* TABS */
+.tabs{display:flex;background:var(--card);border-bottom:1px solid var(--border);max-width:900px;margin:0 auto;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;padding:12px 18px;font-size:12px;font-weight:600;color:var(--grey3);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all 0.2s;letter-spacing:0.5px}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+
+/* MAIN */
+.main{max-width:900px;margin:0 auto;padding:16px}
+
+/* LOADING */
+.loading{text-align:center;padding:60px 20px;color:var(--grey3)}
+.loading-spinner{width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* PRECIOS */
+.prices-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.price-badge{background:var(--card2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:11px;color:rgba(255,255,255,0.7);display:flex;align-items:center;gap:5px}
+.price-badge strong{color:var(--gold);font-size:12px}
+
+/* LEYENDA */
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;padding:12px 14px;background:var(--card);border-radius:12px;border:1px solid var(--border)}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,0.6)}
+.legend-dot{width:14px;height:14px;border-radius:4px}
+
+/* GRUPO */
+.group-header{display:flex;align-items:center;gap:10px;margin:20px 0 12px}
+.group-label{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--gold)}
+.group-line{flex:1;height:1px;background:var(--border)}
+
+/* TEAM CARD */
+.team-card{background:var(--card);border:1px solid var(--border);border-radius:14px;margin-bottom:14px;overflow:hidden;transition:border-color 0.2s}
+.team-card:hover{border-color:rgba(200,168,75,0.4)}
+.team-header{display:flex;align-items:center;gap:10px;padding:12px 14px;background:linear-gradient(90deg,rgba(10,27,61,0.8) 0%,rgba(30,37,53,0.5) 100%);border-bottom:1px solid var(--border)}
+.team-code{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1.5px;color:var(--gold)}
+.team-name{font-size:13px;font-weight:500;color:rgba(255,255,255,0.7)}
+.team-count{margin-left:auto;background:rgba(200,168,75,0.15);color:var(--gold);font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;border:1px solid rgba(200,168,75,0.3)}
+
+/* GRID */
+.laminas-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;padding:10px}
+@media(max-width:480px){.laminas-grid{grid-template-columns:repeat(7,1fr);gap:3px}}
+.lamina-cell{aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;font-weight:700;cursor:default;transition:all 0.15s;position:relative;min-height:36px;user-select:none;-webkit-user-select:none}
+.lamina-cell.empty{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.06)}
+.lamina-cell.has-rep{background:linear-gradient(135deg,var(--green) 0%,var(--green2) 100%);color:white;border:1px solid rgba(255,255,255,0.15);box-shadow:0 2px 8px rgba(46,125,50,0.3);cursor:pointer}
+.lamina-cell.has-rep:active{transform:scale(0.92)}
+.lamina-cell.in-cart{background:linear-gradient(135deg,var(--gold) 0%,var(--gold2) 100%);color:var(--navy);border:1px solid rgba(255,255,255,0.3);box-shadow:0 2px 12px rgba(200,168,75,0.4)}
+.lam-num{font-size:11px;font-weight:700;line-height:1}
+.lam-qty{font-size:9px;font-weight:600;opacity:0.85;line-height:1;margin-top:2px}
+.lam-price{font-size:8px;opacity:0.7;line-height:1}
+
+/* CARRITO MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.cart-modal{background:var(--card);border:1px solid var(--border);border-radius:24px 24px 0 0;width:100%;max-width:600px;max-height:85vh;display:flex;flex-direction:column;animation:slideUp 0.3s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.cart-modal-header{display:flex;align-items:center;justify-content:space-between;padding:20px 20px 16px;border-bottom:1px solid var(--border)}
+.cart-modal-header h2{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1.5px;color:var(--gold)}
+.close-btn{background:rgba(255,255,255,0.08);border:none;color:white;width:34px;height:34px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.cart-items{overflow-y:auto;flex:1;padding:16px 20px}
+.cart-empty{text-align:center;color:var(--grey3);padding:40px 0;font-size:14px}
+.cart-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);gap:10px}
+.cart-item-info{display:flex;align-items:center;gap:10px;flex:1}
+.cart-item-dot{width:10px;height:10px;background:var(--green);border-radius:3px;flex-shrink:0}
+.cart-item-label{font-size:14px;font-weight:600}
+.cart-item-sub{font-size:11px;color:var(--grey3)}
+.cart-item-price{font-size:14px;font-weight:700;color:var(--gold);white-space:nowrap}
+.cart-item-remove{background:rgba(198,40,40,0.15);border:1px solid rgba(198,40,40,0.3);color:#ef9a9a;border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;flex-shrink:0}
+.cart-footer{padding:16px 20px;border-top:1px solid var(--border);background:var(--card);border-radius:0 0 24px 24px}
+.cart-total-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.cart-total-label{font-size:13px;color:var(--grey3)}
+.cart-total-value{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold);letter-spacing:1px}
+.cart-total-count{font-size:12px;color:rgba(255,255,255,0.4);text-align:right}
+.buyer-input{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--white);font-family:'Outfit',sans-serif;font-size:14px;outline:none;margin-bottom:14px}
+.buyer-input:focus{border-color:var(--gold)}
+.buyer-input::placeholder{color:rgba(255,255,255,0.25)}
+.btn-whatsapp{width:100%;background:linear-gradient(135deg,#25d366 0%,#128c7e 100%);color:white;border:none;border-radius:14px;padding:16px;font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all 0.2s;margin-bottom:10px;box-shadow:0 4px 20px rgba(37,211,102,0.25)}
+.btn-whatsapp:active{transform:scale(0.98)}
+.btn-clear-cart{width:100%;background:transparent;color:var(--grey3);border:1px solid rgba(255,255,255,0.1);border-radius:10px;padding:10px;font-family:'Outfit',sans-serif;font-size:13px;cursor:pointer}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--card2);color:white;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:500;z-index:500;transition:transform 0.3s ease;white-space:nowrap;border:1px solid var(--border);box-shadow:var(--shadow)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(200,168,75,0.3);border-radius:2px}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="header-title">
+      <h1>⚽ Láminas Panini 2026</h1>
+      <span>Toca las láminas verdes para agregar al carrito</span>
+    </div>
+    <button class="cart-btn" onclick="openCart()">
+      🛒 Carrito
+      <span class="cart-badge" id="cartBadge" style="display:none">0</span>
+    </button>
+  </div>
+  <div class="tabs" id="tabsContainer">
+    <div class="tab active" data-grp="ALL" onclick="filterGroup('ALL',this)">Todos</div>
+    <div class="tab" data-grp="—" onclick="filterGroup('—',this)">Especiales</div>
+    <div class="tab" data-grp="A" onclick="filterGroup('A',this)">Grupo A</div>
+    <div class="tab" data-grp="B" onclick="filterGroup('B',this)">Grupo B</div>
+    <div class="tab" data-grp="C" onclick="filterGroup('C',this)">Grupo C</div>
+    <div class="tab" data-grp="D" onclick="filterGroup('D',this)">Grupo D</div>
+    <div class="tab" data-grp="E" onclick="filterGroup('E',this)">Grupo E</div>
+    <div class="tab" data-grp="F" onclick="filterGroup('F',this)">Grupo F</div>
+    <div class="tab" data-grp="G" onclick="filterGroup('G',this)">Grupo G</div>
+    <div class="tab" data-grp="H" onclick="filterGroup('H',this)">Grupo H</div>
+    <div class="tab" data-grp="I" onclick="filterGroup('I',this)">Grupo I</div>
+    <div class="tab" data-grp="J" onclick="filterGroup('J',this)">Grupo J</div>
+    <div class="tab" data-grp="K" onclick="filterGroup('K',this)">Grupo K</div>
+    <div class="tab" data-grp="L" onclick="filterGroup('L',this)">Grupo L</div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="prices-row">
+    <div class="price-badge">🛡️ Escudo (Nº1) <strong>$4.000</strong></div>
+    <div class="price-badge">⭐ Nº13 <strong>$3.000</strong></div>
+    <div class="price-badge">🟢 Normal <strong>$1.000</strong></div>
+    <div class="price-badge">🥤 CC <strong>$9.000</strong></div>
+    <div class="price-badge">🌟 FWC <strong>$6.000</strong></div>
+  </div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:linear-gradient(135deg,#2e7d32,#43a047)"></div>Disponible — toca para agregar</div>
+    <div class="legend-item"><div class="legend-dot" style="background:linear-gradient(135deg,#c8a84b,#e8c86a)"></div>En tu carrito</div>
+    <div class="legend-item"><div class="legend-dot" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1)"></div>No disponible</div>
+  </div>
+  <div id="content"><div class="loading"><div class="loading-spinner"></div>Cargando inventario...</div></div>
+</div>
+
+<!-- CARRITO -->
+<div class="modal-overlay" id="cartOverlay" onclick="closeCartOutside(event)">
+  <div class="cart-modal">
+    <div class="cart-modal-header">
+      <h2>🛒 Tu Carrito</h2>
+      <button class="close-btn" onclick="closeCart()">✕</button>
+    </div>
+    <div class="cart-items" id="cartItems"></div>
+    <div class="cart-footer">
+      <input class="buyer-input" id="buyerName" placeholder="Tu nombre (opcional)" type="text">
+      <div class="cart-total-row">
+        <div>
+          <div class="cart-total-label">Total a pagar</div>
+          <div class="cart-total-count" id="cartCount"></div>
+        </div>
+        <div class="cart-total-value" id="cartTotal">$0</div>
+      </div>
+      <button class="btn-whatsapp" onclick="sendWhatsApp()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        Comprar por WhatsApp
+      </button>
+      <button class="btn-clear-cart" onclick="clearCart()">🗑️ Vaciar carrito</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── SUPABASE CONFIG ──────────────────────────────────────────
+const SUPABASE_URL = 'https://iqvociniwlaezxqhzhkk.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlxdm9jaW5pd2xhZXp4cWh6aGtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NTUwNjIsImV4cCI6MjA5NTAzMTA2Mn0.owR1unjzsS0NK_qJgMhDUVmqo1Q5ANIR4h_r_8RIToE';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const WA_NUMBER = '573124845376';
+
+// ── ÁLBUM DATA ───────────────────────────────────────────────
+const ALBUM = [
+  {code:"FWC",name:"FWC — Especiales",group:"—"},{code:"CC",name:"Coca-Cola",group:"—"},
+  {code:"MEX",name:"México",group:"A"},{code:"RSA",name:"Sudáfrica",group:"A"},
+  {code:"KOR",name:"Corea del Sur",group:"A"},{code:"CZE",name:"Chequia",group:"A"},
+  {code:"CAN",name:"Canadá",group:"B"},{code:"BIH",name:"Bosnia y Herz.",group:"B"},
+  {code:"QAT",name:"Qatar",group:"B"},{code:"SUI",name:"Suiza",group:"B"},
+  {code:"BRA",name:"Brasil",group:"C"},{code:"MAR",name:"Marruecos",group:"C"},
+  {code:"HAI",name:"Haití",group:"C"},{code:"SCO",name:"Escocia",group:"C"},
+  {code:"USA",name:"Estados Unidos",group:"D"},{code:"PAR",name:"Paraguay",group:"D"},
+  {code:"AUS",name:"Australia",group:"D"},{code:"TUR",name:"Turquía",group:"D"},
+  {code:"GER",name:"Alemania",group:"E"},{code:"CUW",name:"Curazao",group:"E"},
+  {code:"CIV",name:"Costa de Marfil",group:"E"},{code:"ECU",name:"Ecuador",group:"E"},
+  {code:"NED",name:"Países Bajos",group:"F"},{code:"JPN",name:"Japón",group:"F"},
+  {code:"SWE",name:"Suecia",group:"F"},{code:"TUN",name:"Túnez",group:"F"},
+  {code:"BEL",name:"Bélgica",group:"G"},{code:"EGY",name:"Egipto",group:"G"},
+  {code:"IRN",name:"Irán",group:"G"},{code:"NZL",name:"Nueva Zelanda",group:"G"},
+  {code:"ESP",name:"España",group:"H"},{code:"CPV",name:"Cabo Verde",group:"H"},
+  {code:"KSA",name:"Arabia Saudita",group:"H"},{code:"URU",name:"Uruguay",group:"H"},
+  {code:"FRA",name:"Francia",group:"I"},{code:"SEN",name:"Senegal",group:"I"},
+  {code:"IRQ",name:"Irak",group:"I"},{code:"NOR",name:"Noruega",group:"I"},
+  {code:"ARG",name:"Argentina",group:"J"},{code:"ALG",name:"Argelia",group:"J"},
+  {code:"AUT",name:"Austria",group:"J"},{code:"JOR",name:"Jordania",group:"J"},
+  {code:"POR",name:"Portugal",group:"K"},{code:"COD",name:"Rep. D. Congo",group:"K"},
+  {code:"UZB",name:"Uzbekistán",group:"K"},{code:"COL",name:"Colombia",group:"K"},
+  {code:"ENG",name:"Inglaterra",group:"L"},{code:"CRO",name:"Croacia",group:"L"},
+  {code:"GHA",name:"Ghana",group:"L"},{code:"PAN",name:"Panamá",group:"L"},
+];
+
+function getPrice(code,num){
+  if(code==='CC') return 9000;
+  if(code==='FWC') return 6000;
+  if(num===1) return 4000;
+  if(num===13) return 3000;
+  return 1000;
+}
+function fmtPrice(p){return '$'+p.toLocaleString('es-CO')}
+function getRange(code){
+  if(code==='CC') return Array.from({length:14},(_,i)=>i+1);
+  if(code==='FWC') return Array.from({length:20},(_,i)=>i);
+  return Array.from({length:20},(_,i)=>i+1);
+}
+function getLbl(code,num){
+  if(code==='CC') return `CC${num}`;
+  if(code==='FWC') return `FWC-${String(num).padStart(2,'0')}`;
+  return String(num);
+}
+
+// ── ESTADO ───────────────────────────────────────────────────
+let inventory = {}; // {CODE_NUM: cantidad}
+let cart = [];
+let currentGroup = 'ALL';
+
+function invKey(code,num){return `${code}_${num}`}
+
+async function loadInventory(){
+  const {data,error} = await sb.from('repetidas_inventario').select('*');
+  if(error){console.error(error);return;}
+  inventory = {};
+  data.forEach(r=>{ inventory[invKey(r.code,r.num)] = r.cantidad; });
+  // Cargar carrito de sessionStorage
+  try{ const sc=sessionStorage.getItem('laminas_cart'); if(sc) cart=JSON.parse(sc); }catch(e){cart=[];}
+  renderContent();
+  updateCartBadge();
+}
+
+function saveCart(){sessionStorage.setItem('laminas_cart',JSON.stringify(cart));}
+
+function getCartItem(code,num){return cart.find(i=>i.code===code&&i.num===num);}
+
+function addToCart(code,num){
+  const available = inventory[invKey(code,num)] || 0;
+  const inCart = getCartItem(code,num);
+  const cartQty = inCart ? inCart.qty : 0;
+  if(cartQty>=available){showToast(`Solo hay ×${available} disponibles`);return;}
+  const team = ALBUM.find(t=>t.code===code);
+  if(inCart){ inCart.qty++; }
+  else{ cart.push({code,num,label:getLbl(code,num),price:getPrice(code,num),qty:1,teamName:team.name}); }
+  saveCart(); updateCartBadge(); renderContent();
+  showToast(`${getLbl(code,num)} (${team.name}) agregada`);
+}
+
+function removeFromCart(code,num){
+  const idx=cart.findIndex(i=>i.code===code&&i.num===num);
+  if(idx===-1)return;
+  if(cart[idx].qty>1) cart[idx].qty--;
+  else cart.splice(idx,1);
+  saveCart(); updateCartBadge(); renderContent(); renderCartItems();
+}
+
+function clearCart(){cart=[];saveCart();updateCartBadge();renderContent();renderCartItems();}
+
+function updateCartBadge(){
+  const total=cart.reduce((s,i)=>s+i.qty,0);
+  const b=document.getElementById('cartBadge');
+  if(total>0){b.style.display='flex';b.textContent=total;}else b.style.display='none';
+}
+
+function cartTotal(){return cart.reduce((s,i)=>s+i.price*i.qty,0);}
+
+// ── RENDER ───────────────────────────────────────────────────
+function renderContent(){
+  const groups = currentGroup==='ALL'
+    ? ['—','A','B','C','D','E','F','G','H','I','J','K','L']
+    : [currentGroup];
+  let html='';
+  groups.forEach(grp=>{
+    const teams=ALBUM.filter(t=>t.group===grp);
+    if(!teams.length)return;
+    const grpLabel=grp==='—'?'Especiales':`Grupo ${grp}`;
+    html+=`<div class="group-header"><span class="group-label">${grpLabel}</span><div class="group-line"></div></div>`;
+    teams.forEach(team=>{
+      const range=getRange(team.code);
+      const totalRep=range.reduce((s,n)=>s+(inventory[invKey(team.code,n)]||0),0);
+      html+=`<div class="team-card">
+        <div class="team-header">
+          <span class="team-code">${team.code}</span>
+          <span class="team-name">${team.name}</span>
+          ${totalRep>0?`<span class="team-count">${totalRep} repetida${totalRep>1?'s':''}</span>`:''}
+        </div>
+        <div class="laminas-grid">`;
+      range.forEach(num=>{
+        const qty=inventory[invKey(team.code,num)]||0;
+        const lbl=getLbl(team.code,num);
+        const price=getPrice(team.code,num);
+        const inCart=getCartItem(team.code,num);
+        const cartQty=inCart?inCart.qty:0;
+        if(qty===0){
+          html+=`<div class="lamina-cell empty"><span class="lam-num">${lbl}</span></div>`;
+        } else {
+          const full=cartQty>=qty;
+          html+=`<div class="lamina-cell ${full?'in-cart':'has-rep'}" onclick="${full?`showToast('Ya agregaste todas las copias')`:`addToCart('${team.code}',${num})`}">
+            <span class="lam-num">${lbl}</span>
+            ${qty>1?`<span class="lam-qty">×${qty}</span>`:''}
+            ${cartQty>0?`<span class="lam-qty" style="color:${full?'var(--navy)':'var(--gold2)'}">🛒${cartQty}</span>`:''}
+            <span class="lam-price">${fmtPrice(price)}</span>
+          </div>`;
+        }
+      });
+      html+=`</div></div>`;
+    });
+  });
+  document.getElementById('content').innerHTML=html;
+}
+
+// ── CARRITO MODAL ────────────────────────────────────────────
+function openCart(){renderCartItems();document.getElementById('cartOverlay').classList.add('open');document.body.style.overflow='hidden';}
+function closeCart(){document.getElementById('cartOverlay').classList.remove('open');document.body.style.overflow='';}
+function closeCartOutside(e){if(e.target===document.getElementById('cartOverlay'))closeCart();}
+
+function renderCartItems(){
+  const total=cartTotal();
+  const count=cart.reduce((s,i)=>s+i.qty,0);
+  document.getElementById('cartTotal').textContent=fmtPrice(total);
+  document.getElementById('cartCount').textContent=`${count} lámina${count!==1?'s':''}`;
+  const container=document.getElementById('cartItems');
+  if(!cart.length){container.innerHTML='<div class="cart-empty">🛒<br><br>Tu carrito está vacío<br><small>Toca las láminas verdes para agregar</small></div>';return;}
+  container.innerHTML=cart.map(item=>`
+    <div class="cart-item">
+      <div class="cart-item-info">
+        <div class="cart-item-dot"></div>
+        <div>
+          <div class="cart-item-label">${item.label} — ${item.teamName}</div>
+          <div class="cart-item-sub">${fmtPrice(item.price)} c/u${item.qty>1?` × ${item.qty}`:''}</div>
+        </div>
+      </div>
+      <div class="cart-item-price">${fmtPrice(item.price*item.qty)}</div>
+      <button class="cart-item-remove" onclick="removeFromCart('${item.code}',${item.num});renderCartItems()">−</button>
+    </div>`).join('');
+}
+
+function sendWhatsApp(){
+  if(!cart.length){showToast('Tu carrito está vacío');return;}
+  const buyer=document.getElementById('buyerName').value.trim();
+  const total=cartTotal();
+  const count=cart.reduce((s,i)=>s+i.qty,0);
+  let msg='⚽ *Álbum Panini FIFA World Cup 2026*\n━━━━━━━━━━━━━━━━━━━━\n';
+  if(buyer) msg+=`👤 *Comprador:* ${buyer}\n━━━━━━━━━━━━━━━━━━━━\n`;
+  msg+='📋 *Láminas seleccionadas:*\n\n';
+  const byTeam={};
+  cart.forEach(i=>{if(!byTeam[i.teamName])byTeam[i.teamName]=[];byTeam[i.teamName].push(i);});
+  Object.entries(byTeam).forEach(([team,items])=>{
+    msg+=`*${team}:* ${items.map(i=>i.qty>1?`${i.label}×${i.qty}`:i.label).join(', ')}\n`;
+  });
+  msg+=`\n━━━━━━━━━━━━━━━━━━━━\n📦 *Total láminas:* ${count}\n💰 *Total a pagar:* ${fmtPrice(total)}\n━━━━━━━━━━━━━━━━━━━━\n_laminas.scorevision.space_`;
+  window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`,'_blank');
+}
+
+// ── TABS ─────────────────────────────────────────────────────
+function filterGroup(grp,el){
+  currentGroup=grp;
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  el.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+  renderContent();
+}
+
+// ── TOAST ────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// ── INIT ─────────────────────────────────────────────────────
+loadInventory();
+</script>
+</body>
+</html>

@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Admin · Láminas Panini 2026</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --navy:#0a1b3d;--navy2:#122554;--gold:#c8a84b;--gold2:#e8c86a;
+  --green:#2e7d32;--green2:#43a047;--red:#c62828;--red2:#e53935;
+  --white:#ffffff;--grey:#e0e0e0;--grey3:#9e9e9e;
+  --dark:#1a1a2e;--bg:#0d1117;--card:#161b27;--card2:#1e2535;
+  --border:rgba(200,168,75,0.2);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--white);min-height:100vh}
+
+/* PIN SCREEN */
+.pin-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+.pin-card{background:var(--card);border:1px solid var(--border);border-radius:24px;padding:40px 32px;width:100%;max-width:360px;text-align:center}
+.pin-logo{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--gold);letter-spacing:2px;margin-bottom:6px}
+.pin-sub{font-size:13px;color:var(--grey3);margin-bottom:32px}
+.pin-dots{display:flex;justify-content:center;gap:12px;margin-bottom:28px}
+.pin-dot{width:16px;height:16px;border-radius:50%;border:2px solid var(--border);transition:all 0.2s}
+.pin-dot.filled{background:var(--gold);border-color:var(--gold)}
+.pin-dot.error{background:var(--red2);border-color:var(--red2)}
+.pin-keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.pin-key{background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:18px;font-family:'Outfit',sans-serif;font-size:22px;font-weight:600;color:var(--white);cursor:pointer;transition:all 0.15s;user-select:none}
+.pin-key:active{transform:scale(0.93);background:var(--navy2)}
+.pin-key.del{font-size:18px;color:var(--grey3)}
+.pin-key.empty{background:transparent;border:none;cursor:default}
+.pin-error{color:#ef9a9a;font-size:13px;margin-top:16px;min-height:20px}
+
+/* ADMIN LAYOUT */
+.admin-layout{display:none;flex-direction:column;min-height:100vh}
+
+/* HEADER */
+.header{background:linear-gradient(135deg,var(--navy) 0%,#1a2d5a 100%);border-bottom:2px solid var(--gold);padding:0;position:sticky;top:0;z-index:100}
+.header-inner{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;max-width:960px;margin:0 auto}
+.header-title h1{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--gold)}
+.header-title span{font-size:10px;color:rgba(255,255,255,0.5);letter-spacing:1px;text-transform:uppercase}
+.btn-logout{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--grey3);border-radius:10px;padding:8px 14px;font-family:'Outfit',sans-serif;font-size:13px;cursor:pointer}
+.btn-ver-tienda{background:var(--gold);color:var(--navy);border:none;border-radius:10px;padding:8px 14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:5px}
+
+/* MAIN */
+.admin-main{max-width:960px;margin:0 auto;padding:20px 16px;flex:1}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center}
+.stat-num{font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--gold)}
+.stat-label{font-size:11px;color:var(--grey3);text-transform:uppercase;letter-spacing:0.5px}
+
+/* PANEL INGRESO */
+.panel{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:24px}
+.panel h2{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--gold);letter-spacing:1px;margin-bottom:16px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+@media(max-width:480px){.form-grid{grid-template-columns:1fr}}
+.form-group label{display:block;font-size:11px;font-weight:600;color:var(--grey3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
+.form-group select,.form-group input{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--white);font-family:'Outfit',sans-serif;font-size:15px;outline:none;transition:border-color 0.2s;-webkit-appearance:none}
+.form-group select:focus,.form-group input:focus{border-color:var(--gold)}
+.form-group input::placeholder{color:rgba(255,255,255,0.25)}
+.btn-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn-add{background:var(--green);color:white;border:none;border-radius:12px;padding:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:15px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-del{background:var(--red);color:white;border:none;border-radius:12px;padding:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:15px;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn-add:active{transform:scale(0.97)}
+.btn-del:active{transform:scale(0.97)}
+.status-msg{margin-top:12px;padding:12px 16px;border-radius:10px;font-size:13px;font-weight:500;display:none}
+.status-msg.show{display:block}
+.status-ok{background:rgba(46,125,50,0.2);color:#81c784;border:1px solid rgba(46,125,50,0.4)}
+.status-err{background:rgba(198,40,40,0.2);color:#ef9a9a;border:1px solid rgba(198,40,40,0.4)}
+.status-warn{background:rgba(200,168,75,0.15);color:var(--gold2);border:1px solid rgba(200,168,75,0.3)}
+
+/* TABLA INVENTARIO */
+.inv-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.inv-header h2{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--gold);letter-spacing:1px}
+.search-input{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:9px 14px;color:var(--white);font-family:'Outfit',sans-serif;font-size:13px;outline:none;width:180px}
+.search-input:focus{border-color:var(--gold)}
+.search-input::placeholder{color:rgba(255,255,255,0.3)}
+.inv-table{width:100%;border-collapse:collapse}
+.inv-table th{font-size:11px;font-weight:700;color:var(--grey3);text-transform:uppercase;letter-spacing:0.5px;padding:8px 12px;border-bottom:1px solid var(--border);text-align:left}
+.inv-table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:13px;vertical-align:middle}
+.inv-table tr:hover td{background:rgba(255,255,255,0.02)}
+.badge-code{font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--gold);letter-spacing:1px}
+.badge-qty{display:inline-flex;align-items:center;justify-content:center;background:rgba(46,125,50,0.2);color:#81c784;border:1px solid rgba(46,125,50,0.4);border-radius:8px;padding:3px 10px;font-weight:700;font-size:13px;min-width:36px}
+.badge-price{color:var(--grey3);font-size:12px}
+.btn-row-sm{display:flex;gap:6px}
+.btn-sm-add{background:rgba(46,125,50,0.2);border:1px solid rgba(46,125,50,0.4);color:#81c784;border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;font-weight:700}
+.btn-sm-del{background:rgba(198,40,40,0.15);border:1px solid rgba(198,40,40,0.3);color:#ef9a9a;border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;font-weight:700}
+.btn-sm-add:active,.btn-sm-del:active{transform:scale(0.92)}
+.no-results{text-align:center;color:var(--grey3);padding:32px;font-size:14px}
+
+/* PEDIDOS */
+.pedido-card{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px}
+.pedido-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.pedido-buyer{font-weight:600;font-size:14px}
+.pedido-date{font-size:11px;color:var(--grey3)}
+.pedido-items{font-size:12px;color:rgba(255,255,255,0.6);margin-bottom:8px;line-height:1.6}
+.pedido-footer{display:flex;align-items:center;justify-content:space-between}
+.pedido-total{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--gold)}
+.pedido-count{font-size:11px;color:var(--grey3)}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);background:var(--card2);color:white;padding:12px 20px;border-radius:12px;font-size:13px;font-weight:500;z-index:500;transition:transform 0.3s ease;white-space:nowrap;border:1px solid var(--border)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+
+/* TABS ADMIN */
+.admin-tabs{display:flex;gap:0;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:20px}
+.admin-tab{flex:1;padding:10px;text-align:center;font-size:13px;font-weight:600;color:var(--grey3);cursor:pointer;border-radius:8px;transition:all 0.2s}
+.admin-tab.active{background:var(--navy2);color:var(--gold)}
+
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(200,168,75,0.3);border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- PIN SCREEN -->
+<div class="pin-screen" id="pinScreen">
+  <div class="pin-card">
+    <div class="pin-logo">⚽ Panel Admin</div>
+    <div class="pin-sub">Láminas Panini 2026 · Acceso restringido</div>
+    <div class="pin-dots" id="pinDots">
+      <div class="pin-dot"></div><div class="pin-dot"></div>
+      <div class="pin-dot"></div><div class="pin-dot"></div>
+      <div class="pin-dot"></div><div class="pin-dot"></div>
+    </div>
+    <div class="pin-keypad">
+      <div class="pin-key" onclick="pinPress('1')">1</div>
+      <div class="pin-key" onclick="pinPress('2')">2</div>
+      <div class="pin-key" onclick="pinPress('3')">3</div>
+      <div class="pin-key" onclick="pinPress('4')">4</div>
+      <div class="pin-key" onclick="pinPress('5')">5</div>
+      <div class="pin-key" onclick="pinPress('6')">6</div>
+      <div class="pin-key" onclick="pinPress('7')">7</div>
+      <div class="pin-key" onclick="pinPress('8')">8</div>
+      <div class="pin-key" onclick="pinPress('9')">9</div>
+      <div class="pin-key empty"></div>
+      <div class="pin-key" onclick="pinPress('0')">0</div>
+      <div class="pin-key del" onclick="pinDel()">⌫</div>
+    </div>
+    <div class="pin-error" id="pinError"></div>
+  </div>
+</div>
+
+<!-- ADMIN LAYOUT -->
+<div class="admin-layout" id="adminLayout">
+  <div class="header">
+    <div class="header-inner">
+      <div class="header-title">
+        <h1>⚙️ Panel Admin</h1>
+        <span>Gestión de inventario · Láminas Panini 2026</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <a href="/" class="btn-ver-tienda">🛍️ Ver tienda</a>
+        <button class="btn-logout" onclick="logout()">Salir</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-main">
+    <!-- STATS -->
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num" id="statEquipos">—</div><div class="stat-label">Equipos con repetidas</div></div>
+      <div class="stat-card"><div class="stat-num" id="statLaminas">—</div><div class="stat-label">Láminas distintas</div></div>
+      <div class="stat-card"><div class="stat-num" id="statTotal">—</div><div class="stat-label">Total unidades</div></div>
+    </div>
+
+    <!-- TABS -->
+    <div class="admin-tabs">
+      <div class="admin-tab active" onclick="showTab('inventario',this)">📦 Inventario</div>
+      <div class="admin-tab" onclick="showTab('agregar',this)">➕ Agregar / Eliminar</div>
+      <div class="admin-tab" onclick="showTab('pedidos',this)">📋 Pedidos</div>
+    </div>
+
+    <!-- TAB: INVENTARIO -->
+    <div id="tab-inventario">
+      <div class="panel">
+        <div class="inv-header">
+          <h2>Inventario actual</h2>
+          <input class="search-input" type="text" id="searchInput" placeholder="🔍 Buscar..." oninput="renderInventoryTable()">
+        </div>
+        <div style="overflow-x:auto">
+          <table class="inv-table">
+            <thead>
+              <tr>
+                <th>Equipo</th>
+                <th>Lámina</th>
+                <th>Cantidad</th>
+                <th>Precio</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody id="invTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: AGREGAR/ELIMINAR -->
+    <div id="tab-agregar" style="display:none">
+      <div class="panel">
+        <h2>➕ Agregar lámina</h2>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Equipo</label>
+            <select id="addEquipo"><option value="">-- Selecciona --</option></select>
+          </div>
+          <div class="form-group">
+            <label>N° Lámina</label>
+            <input type="text" id="addLamina" placeholder="Ej: 6 / CC5 / FWC-03" inputmode="text">
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn-add" onclick="agregarLamina()">✅ Agregar</button>
+          <button class="btn-del" onclick="eliminarLamina()">❌ Eliminar una copia</button>
+        </div>
+        <div class="status-msg" id="statusMsg"></div>
+      </div>
+    </div>
+
+    <!-- TAB: PEDIDOS -->
+    <div id="tab-pedidos" style="display:none">
+      <div class="panel">
+        <h2>Pedidos recibidos por WhatsApp</h2>
+        <p style="font-size:13px;color:var(--grey3);margin-bottom:16px">Los pedidos se registran cuando el comprador envía el mensaje de WhatsApp.</p>
+        <div id="pedidosList"><div class="no-results">Cargando pedidos...</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── SUPABASE ─────────────────────────────────────────────────
+const SUPABASE_URL = 'https://iqvociniwlaezxqhzhkk.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlxdm9jaW5pd2xhZXp4cWh6aGtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NTUwNjIsImV4cCI6MjA5NTAzMTA2Mn0.owR1unjzsS0NK_qJgMhDUVmqo1Q5ANIR4h_r_8RIToE';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const CORRECT_PIN = '951117';
+
+// ── ÁLBUM DATA ───────────────────────────────────────────────
+const ALBUM = [
+  {code:"FWC",name:"FWC — Especiales",group:"—"},{code:"CC",name:"Coca-Cola",group:"—"},
+  {code:"MEX",name:"México",group:"A"},{code:"RSA",name:"Sudáfrica",group:"A"},
+  {code:"KOR",name:"Corea del Sur",group:"A"},{code:"CZE",name:"Chequia",group:"A"},
+  {code:"CAN",name:"Canadá",group:"B"},{code:"BIH",name:"Bosnia y Herz.",group:"B"},
+  {code:"QAT",name:"Qatar",group:"B"},{code:"SUI",name:"Suiza",group:"B"},
+  {code:"BRA",name:"Brasil",group:"C"},{code:"MAR",name:"Marruecos",group:"C"},
+  {code:"HAI",name:"Haití",group:"C"},{code:"SCO",name:"Escocia",group:"C"},
+  {code:"USA",name:"Estados Unidos",group:"D"},{code:"PAR",name:"Paraguay",group:"D"},
+  {code:"AUS",name:"Australia",group:"D"},{code:"TUR",name:"Turquía",group:"D"},
+  {code:"GER",name:"Alemania",group:"E"},{code:"CUW",name:"Curazao",group:"E"},
+  {code:"CIV",name:"Costa de Marfil",group:"E"},{code:"ECU",name:"Ecuador",group:"E"},
+  {code:"NED",name:"Países Bajos",group:"F"},{code:"JPN",name:"Japón",group:"F"},
+  {code:"SWE",name:"Suecia",group:"F"},{code:"TUN",name:"Túnez",group:"F"},
+  {code:"BEL",name:"Bélgica",group:"G"},{code:"EGY",name:"Egipto",group:"G"},
+  {code:"IRN",name:"Irán",group:"G"},{code:"NZL",name:"Nueva Zelanda",group:"G"},
+  {code:"ESP",name:"España",group:"H"},{code:"CPV",name:"Cabo Verde",group:"H"},
+  {code:"KSA",name:"Arabia Saudita",group:"H"},{code:"URU",name:"Uruguay",group:"H"},
+  {code:"FRA",name:"Francia",group:"I"},{code:"SEN",name:"Senegal",group:"I"},
+  {code:"IRQ",name:"Irak",group:"I"},{code:"NOR",name:"Noruega",group:"I"},
+  {code:"ARG",name:"Argentina",group:"J"},{code:"ALG",name:"Argelia",group:"J"},
+  {code:"AUT",name:"Austria",group:"J"},{code:"JOR",name:"Jordania",group:"J"},
+  {code:"POR",name:"Portugal",group:"K"},{code:"COD",name:"Rep. D. Congo",group:"K"},
+  {code:"UZB",name:"Uzbekistán",group:"K"},{code:"COL",name:"Colombia",group:"K"},
+  {code:"ENG",name:"Inglaterra",group:"L"},{code:"CRO",name:"Croacia",group:"L"},
+  {code:"GHA",name:"Ghana",group:"L"},{code:"PAN",name:"Panamá",group:"L"},
+];
+
+function getPrice(code,num){
+  if(code==='CC') return 9000;
+  if(code==='FWC') return 6000;
+  if(num===1) return 4000;
+  if(num===13) return 3000;
+  return 1000;
+}
+function fmtPrice(p){return '$'+p.toLocaleString('es-CO')}
+function getRange(code){
+  if(code==='CC') return Array.from({length:14},(_,i)=>i+1);
+  if(code==='FWC') return Array.from({length:20},(_,i)=>i);
+  return Array.from({length:20},(_,i)=>i+1);
+}
+function getLbl(code,num){
+  if(code==='CC') return `CC${num}`;
+  if(code==='FWC') return `FWC-${String(num).padStart(2,'0')}`;
+  return String(num);
+}
+function parseNum(input){
+  let s=input.trim().toUpperCase();
+  s=s.replace(/^FWC[-\s]?/,'').replace(/^CC/,'');
+  const n=parseInt(s);
+  return isNaN(n)?null:n;
+}
+
+// ── PIN ──────────────────────────────────────────────────────
+let pinValue='';
+
+function pinPress(d){
+  if(pinValue.length>=6) return;
+  pinValue+=d;
+  updateDots();
+  if(pinValue.length===6) setTimeout(checkPin,150);
+}
+function pinDel(){
+  pinValue=pinValue.slice(0,-1);
+  updateDots();
+  document.getElementById('pinError').textContent='';
+}
+function updateDots(){
+  const dots=document.querySelectorAll('.pin-dot');
+  dots.forEach((d,i)=>{
+    d.classList.remove('filled','error');
+    if(i<pinValue.length) d.classList.add('filled');
+  });
+}
+function checkPin(){
+  if(pinValue===CORRECT_PIN){
+    sessionStorage.setItem('admin_auth','1');
+    document.getElementById('pinScreen').style.display='none';
+    document.getElementById('adminLayout').style.display='flex';
+    initAdmin();
+  } else {
+    document.querySelectorAll('.pin-dot').forEach(d=>{d.classList.remove('filled');d.classList.add('error');});
+    document.getElementById('pinError').textContent='PIN incorrecto. Intenta de nuevo.';
+    setTimeout(()=>{
+      pinValue='';
+      updateDots();
+      document.getElementById('pinError').textContent='';
+    },1200);
+  }
+}
+function logout(){sessionStorage.removeItem('admin_auth');location.reload();}
+
+// ── ESTADO ───────────────────────────────────────────────────
+let inventory = [];
+
+async function loadInventory(){
+  const {data,error}=await sb.from('repetidas_inventario').select('*').order('code').order('num');
+  if(error){showToast('Error cargando inventario');console.error(error);return;}
+  inventory=data||[];
+  updateStats();
+  renderInventoryTable();
+}
+
+function updateStats(){
+  const equipos=new Set(inventory.map(r=>r.code)).size;
+  const total=inventory.reduce((s,r)=>s+r.cantidad,0);
+  document.getElementById('statEquipos').textContent=equipos;
+  document.getElementById('statLaminas').textContent=inventory.length;
+  document.getElementById('statTotal').textContent=total;
+}
+
+function renderInventoryTable(){
+  const q=(document.getElementById('searchInput').value||'').toUpperCase();
+  const filtered=inventory.filter(r=>
+    r.code.includes(q) ||
+    getLbl(r.code,r.num).includes(q) ||
+    (ALBUM.find(t=>t.code===r.code)?.name.toUpperCase().includes(q))
+  );
+  const tbody=document.getElementById('invTableBody');
+  if(!filtered.length){tbody.innerHTML=`<tr><td colspan="5" class="no-results">Sin resultados</td></tr>`;return;}
+  tbody.innerHTML=filtered.map(r=>{
+    const team=ALBUM.find(t=>t.code===r.code);
+    const lbl=getLbl(r.code,r.num);
+    const price=getPrice(r.code,r.num);
+    return `<tr>
+      <td><span class="badge-code">${r.code}</span><br><span style="font-size:11px;color:var(--grey3)">${team?.name||''}</span></td>
+      <td style="font-weight:600">${lbl}</td>
+      <td><span class="badge-qty">×${r.cantidad}</span></td>
+      <td><span class="badge-price">${fmtPrice(price)}</span></td>
+      <td>
+        <div class="btn-row-sm">
+          <button class="btn-sm-add" onclick="quickAdd('${r.code}',${r.num})" title="Agregar una copia">+</button>
+          <button class="btn-sm-del" onclick="quickDel('${r.code}',${r.num})" title="Eliminar una copia">−</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── OPERACIONES RÁPIDAS DESDE TABLA ──────────────────────────
+async function quickAdd(code,num){
+  const row=inventory.find(r=>r.code===code&&r.num===num);
+  if(!row) return;
+  const newQty=row.cantidad+1;
+  const {error}=await sb.from('repetidas_inventario').update({cantidad:newQty,updated_at:new Date().toISOString()}).eq('code',code).eq('num',num);
+  if(error){showToast('Error al actualizar');return;}
+  row.cantidad=newQty;
+  updateStats();
+  renderInventoryTable();
+  showToast(`${getLbl(code,num)} → ×${newQty}`);
+}
+
+async function quickDel(code,num){
+  const row=inventory.find(r=>r.code===code&&r.num===num);
+  if(!row) return;
+  if(row.cantidad<=1){
+    const {error}=await sb.from('repetidas_inventario').delete().eq('code',code).eq('num',num);
+    if(error){showToast('Error al eliminar');return;}
+    inventory=inventory.filter(r=>!(r.code===code&&r.num===num));
+  } else {
+    const newQty=row.cantidad-1;
+    const {error}=await sb.from('repetidas_inventario').update({cantidad:newQty,updated_at:new Date().toISOString()}).eq('code',code).eq('num',num);
+    if(error){showToast('Error al actualizar');return;}
+    row.cantidad=newQty;
+  }
+  updateStats();
+  renderInventoryTable();
+  showToast(`${getLbl(code,num)} actualizada`);
+}
+
+// ── AGREGAR / ELIMINAR MANUAL ─────────────────────────────────
+async function agregarLamina(){
+  const code=document.getElementById('addEquipo').value;
+  const input=document.getElementById('addLamina').value;
+  if(!code){showStatus('Selecciona un equipo','err');return;}
+  if(!input){showStatus('Escribe el número de lámina','err');return;}
+  const num=parseNum(input);
+  const range=getRange(code);
+  if(num===null||!range.includes(num)){showStatus(`Número fuera de rango para ${code}`,'err');return;}
+  const existing=inventory.find(r=>r.code===code&&r.num===num);
+  let newQty=1;
+  if(existing){
+    newQty=existing.cantidad+1;
+    const {error}=await sb.from('repetidas_inventario').update({cantidad:newQty,updated_at:new Date().toISOString()}).eq('code',code).eq('num',num);
+    if(error){showStatus('Error al actualizar','err');return;}
+    existing.cantidad=newQty;
+  } else {
+    const {data,error}=await sb.from('repetidas_inventario').insert({code,num,cantidad:1}).select().single();
+    if(error){showStatus('Error al agregar','err');return;}
+    inventory.push(data);
+  }
+  updateStats();
+  renderInventoryTable();
+  document.getElementById('addLamina').value='';
+  showStatus(`${code} · ${getLbl(code,num)} ${newQty>1?`→ ahora ×${newQty}`:'agregada correctamente'}`,'ok');
+}
+
+async function eliminarLamina(){
+  const code=document.getElementById('addEquipo').value;
+  const input=document.getElementById('addLamina').value;
+  if(!code){showStatus('Selecciona un equipo','err');return;}
+  if(!input){showStatus('Escribe el número de lámina','err');return;}
+  const num=parseNum(input);
+  if(num===null){showStatus('Número inválido','err');return;}
+  const existing=inventory.find(r=>r.code===code&&r.num===num);
+  if(!existing){showStatus(`No se encontró ${getLbl(code,num)} en ${code}`,'warn');return;}
+  if(existing.cantidad<=1){
+    const {error}=await sb.from('repetidas_inventario').delete().eq('code',code).eq('num',num);
+    if(error){showStatus('Error al eliminar','err');return;}
+    inventory=inventory.filter(r=>!(r.code===code&&r.num===num));
+    showStatus(`${code} · ${getLbl(code,num)} eliminada completamente`,'ok');
+  } else {
+    const newQty=existing.cantidad-1;
+    const {error}=await sb.from('repetidas_inventario').update({cantidad:newQty,updated_at:new Date().toISOString()}).eq('code',code).eq('num',num);
+    if(error){showStatus('Error al actualizar','err');return;}
+    existing.cantidad=newQty;
+    showStatus(`${code} · ${getLbl(code,num)} → quedan ×${newQty}`,'ok');
+  }
+  updateStats();
+  renderInventoryTable();
+  document.getElementById('addLamina').value='';
+}
+
+// ── PEDIDOS ──────────────────────────────────────────────────
+async function loadPedidos(){
+  const {data,error}=await sb.from('repetidas_pedidos').select('*').order('created_at',{ascending:false}).limit(50);
+  const container=document.getElementById('pedidosList');
+  if(error||!data?.length){container.innerHTML='<div class="no-results">No hay pedidos registrados aún</div>';return;}
+  container.innerHTML=data.map(p=>{
+    const items=typeof p.items==='string'?JSON.parse(p.items):p.items;
+    const byTeam={};
+    items.forEach(i=>{if(!byTeam[i.teamName])byTeam[i.teamName]=[];byTeam[i.teamName].push(i);});
+    const itemsText=Object.entries(byTeam).map(([t,its])=>`<strong>${t}:</strong> ${its.map(i=>i.qty>1?`${i.label}×${i.qty}`:i.label).join(', ')}`).join(' · ');
+    const date=new Date(p.created_at).toLocaleString('es-CO',{dateStyle:'short',timeStyle:'short'});
+    return `<div class="pedido-card">
+      <div class="pedido-header">
+        <span class="pedido-buyer">👤 ${p.comprador||'Anónimo'}</span>
+        <span class="pedido-date">${date}</span>
+      </div>
+      <div class="pedido-items">${itemsText}</div>
+      <div class="pedido-footer">
+        <span class="pedido-count">${p.total_laminas} lámina${p.total_laminas!==1?'s':''}</span>
+        <span class="pedido-total">${fmtPrice(p.total_precio)}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── TABS ─────────────────────────────────────────────────────
+function showTab(name,el){
+  ['inventario','agregar','pedidos'].forEach(t=>document.getElementById(`tab-${t}`).style.display='none');
+  document.getElementById(`tab-${name}`).style.display='block';
+  document.querySelectorAll('.admin-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  if(name==='pedidos') loadPedidos();
+}
+
+// ── HELPERS ──────────────────────────────────────────────────
+function showStatus(msg,type){
+  const el=document.getElementById('statusMsg');
+  el.textContent=msg;el.className=`status-msg show status-${type}`;
+  setTimeout(()=>el.classList.remove('show'),3500);
+}
+let toastTimer;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// ── INIT ADMIN ───────────────────────────────────────────────
+function initAdmin(){
+  const sel=document.getElementById('addEquipo');
+  ALBUM.forEach(t=>{
+    const opt=document.createElement('option');
+    opt.value=t.code;
+    opt.textContent=`${t.code} — ${t.name}`;
+    sel.appendChild(opt);
+  });
+  loadInventory();
+}
+
+// ── ARRANQUE ─────────────────────────────────────────────────
+if(sessionStorage.getItem('admin_auth')==='1'){
+  document.getElementById('pinScreen').style.display='none';
+  document.getElementById('adminLayout').style.display='flex';
+  initAdmin();
+}
+</script>
+</body>
+</html>
