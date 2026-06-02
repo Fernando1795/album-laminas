@@ -509,29 +509,51 @@ function showTab(name,el){
 function downloadExcel(){
   if(!inventory.length){showToast('No hay inventario para exportar');return;}
 
-  // Construir filas ordenadas por grupo → equipo → número
-  const rows = inventory.map(r => {
-    const team = ALBUM.find(t => t.code === r.code);
-    return {
-      Grupo:    team ? (team.group === '—' ? 'Especiales' : `Grupo ${team.group}`) : '—',
-      Equipo:   team?.name || r.code,
-      Código:   r.code,
-      Lámina:   getLbl(r.code, r.num),
-      Cantidad: r.cantidad,
-      Precio:   getPrice(r.code, r.num),
-      'Precio (formato)': fmtPrice(getPrice(r.code, r.num)),
-    };
-  }).sort((a, b) => a.Grupo.localeCompare(b.Grupo) || a.Equipo.localeCompare(b.Equipo));
+  // Agrupar por equipo
+  const byTeam = {};
+  inventory.forEach(r => {
+    if(!byTeam[r.code]) byTeam[r.code] = [];
+    byTeam[r.code].push(r);
+  });
+
+  const rows = [];
+  // Recorrer ALBUM en orden (ya está ordenado por grupo)
+  ALBUM.forEach(team => {
+    const laminas = byTeam[team.code];
+    if(!laminas || !laminas.length) return;
+
+    // Ordenar por número
+    laminas.sort((a,b) => a.num - b.num);
+
+    // Lista de láminas: "6, 19" o "FWC-11 ×2, FWC-15"
+    const lista = laminas.map(r => {
+      const lbl = getLbl(r.code, r.num);
+      return r.cantidad > 1 ? `${lbl} ×${r.cantidad}` : lbl;
+    }).join(', ');
+
+    // Detalle por lámina para columnas individuales
+    const detalle = laminas.map(r => `${getLbl(r.code,r.num)}: ${fmtPrice(getPrice(r.code,r.num))} ×${r.cantidad}`).join(' | ');
+
+    const totalUnidades = laminas.reduce((s,r) => s + r.cantidad, 0);
+    const totalValor = laminas.reduce((s,r) => s + getPrice(r.code,r.num) * r.cantidad, 0);
+
+    rows.push({
+      'Grupo':             team.group === '—' ? 'Especiales' : `Grupo ${team.group}`,
+      'Equipo':            team.name,
+      'Código':            team.code,
+      'Láminas repetidas': lista,
+      'Total láminas':     totalUnidades,
+      'Valor total':       totalValor,
+      'Valor (formato)':   fmtPrice(totalValor),
+      'Detalle precios':   detalle,
+    });
+  });
 
   const ws = XLSX.utils.json_to_sheet(rows);
-
-  // Ancho de columnas
-  ws['!cols'] = [
-    {wch:12},{wch:22},{wch:8},{wch:10},{wch:10},{wch:10},{wch:16}
-  ];
+  ws['!cols'] = [{wch:12},{wch:22},{wch:8},{wch:40},{wch:14},{wch:12},{wch:16},{wch:60}];
 
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Repetidas');
+  XLSX.utils.book_append_sheet(wb, ws, 'Repetidas por equipo');
 
   const fecha = new Date().toLocaleDateString('es-CO').replace(/\//g,'-');
   XLSX.writeFile(wb, `laminas-repetidas-${fecha}.xlsx`);
