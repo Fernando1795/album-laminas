@@ -50,16 +50,14 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--white);min
 .tab{flex:0 0 auto;padding:12px 18px;font-size:13px;font-weight:600;color:var(--grey3);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all 0.2s;letter-spacing:0.5px}
 .tab.active{color:var(--gold);border-bottom-color:var(--gold)}
 .search-team-wrap{flex:1;position:relative;display:flex;align-items:center;padding:8px 0}
-#teamSearch{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:9px 32px 9px 14px;color:var(--white);font-family:'Outfit',sans-serif;font-size:13px;outline:none;transition:border-color 0.2s}
-#teamSearch:focus{border-color:var(--gold)}
-#teamSearch::placeholder{color:rgba(255,255,255,0.4)}
-#teamClearBtn{position:absolute;right:6px;background:none;border:none;color:var(--grey3);width:24px;height:24px;border-radius:50%;cursor:pointer;font-size:14px;display:none;align-items:center;justify-content:center;padding:0}
-#teamClearBtn.show{display:flex}
-#teamClearBtn:hover{background:rgba(255,255,255,0.1);color:var(--white)}
+#teamSelect{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:9px 36px 9px 14px;color:var(--white);font-family:'Outfit',sans-serif;font-size:13px;outline:none;transition:border-color 0.2s;cursor:pointer;appearance:none;-webkit-appearance:none;-moz-appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%23c8a84b' d='M6 8L0 0h12z'/></svg>");background-repeat:no-repeat;background-position:right 14px center}
+#teamSelect:focus{border-color:var(--gold)}
+#teamSelect option{background:var(--card);color:var(--white);padding:8px}
+#teamSelect optgroup{background:var(--navy);color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;font-weight:normal}
 @media(max-width:480px){
   .tabs{padding:0 10px;gap:6px}
   .tab{padding:11px 12px;font-size:12px}
-  #teamSearch{font-size:12px;padding:8px 28px 8px 12px}
+  #teamSelect{font-size:12px;padding:8px 32px 8px 12px}
 }
 
 /* MAIN */
@@ -170,8 +168,9 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--white);min
   <div class="tabs" id="tabsContainer">
     <div class="tab active" id="tabAll" onclick="resetFilter()">Todos</div>
     <div class="search-team-wrap">
-      <input type="text" id="teamSearch" placeholder="🔍 Buscar equipo..." autocomplete="off" maxlength="40">
-      <button type="button" id="teamClearBtn" onclick="clearTeamSearch()" aria-label="Limpiar">✕</button>
+      <select id="teamSelect" aria-label="Filtrar por equipo">
+        <option value="">— Selecciona un equipo —</option>
+      </select>
     </div>
   </div>
 </div>
@@ -337,19 +336,14 @@ function updateCartBadge(){
 function cartTotal(){return cart.reduce((s,i)=>s+i.price*i.qty,0);}
 
 // ── RENDER ───────────────────────────────────────────────────
-function normTxt(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');}
-
 function renderContent(){
   const groups = ['—','A','B','C','D','E','F','G','H','I','J','K','L'];
-  const q = normTxt(teamFilter);
   let html='';
   let totalShown = 0;
   groups.forEach(grp=>{
     let teams = ALBUM.filter(t=>t.group===grp);
-    if(q){
-      teams = teams.filter(t =>
-        normTxt(t.name).includes(q) || normTxt(t.code).includes(q)
-      );
+    if(teamFilter){
+      teams = teams.filter(t => t.code === teamFilter);
     }
     if(!teams.length)return;
     totalShown += teams.length;
@@ -460,22 +454,41 @@ async function sendWhatsApp(){
 // ── FILTRO DE EQUIPOS ────────────────────────────────────────
 function resetFilter(){
   teamFilter = '';
-  const input = document.getElementById('teamSearch');
-  if(input) input.value = '';
-  document.getElementById('teamClearBtn').classList.remove('show');
+  const sel = document.getElementById('teamSelect');
+  if(sel) sel.value = '';
   renderContent();
 }
-function clearTeamSearch(){
-  document.getElementById('teamSearch').value = '';
-  teamFilter = '';
-  document.getElementById('teamClearBtn').classList.remove('show');
+
+function onTeamSelectChange(e){
+  teamFilter = e.target.value;
   renderContent();
-  document.getElementById('teamSearch').focus();
 }
-function onTeamSearchInput(e){
-  teamFilter = e.target.value.trim();
-  document.getElementById('teamClearBtn').classList.toggle('show', teamFilter.length > 0);
-  renderContent();
+
+function populateTeamSelect(){
+  const sel = document.getElementById('teamSelect');
+  // Mantener la opción default
+  sel.innerHTML = '<option value="">— Selecciona un equipo —</option>';
+
+  const groupNames = {
+    '—':'Especiales', 'A':'Grupo A','B':'Grupo B','C':'Grupo C','D':'Grupo D',
+    'E':'Grupo E','F':'Grupo F','G':'Grupo G','H':'Grupo H',
+    'I':'Grupo I','J':'Grupo J','K':'Grupo K','L':'Grupo L'
+  };
+  const order = ['—','A','B','C','D','E','F','G','H','I','J','K','L'];
+
+  order.forEach(grp=>{
+    const teams = ALBUM.filter(t => t.group === grp);
+    if(!teams.length) return;
+    const og = document.createElement('optgroup');
+    og.label = groupNames[grp] || grp;
+    teams.forEach(t=>{
+      const opt = document.createElement('option');
+      opt.value = t.code;
+      opt.textContent = `${t.code} — ${t.name}`;
+      og.appendChild(opt);
+    });
+    sel.appendChild(og);
+  });
 }
 
 // ── TOAST ────────────────────────────────────────────────────
@@ -488,7 +501,8 @@ function showToast(msg){
 }
 
 // ── INIT ─────────────────────────────────────────────────────
-document.getElementById('teamSearch').addEventListener('input', onTeamSearchInput);
+populateTeamSelect();
+document.getElementById('teamSelect').addEventListener('change', onTeamSelectChange);
 loadInventory();
 </script>
 </body>
