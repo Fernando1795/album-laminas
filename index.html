@@ -438,17 +438,22 @@ async function sendWhatsApp(){
     });
   } catch(e){ console.warn('No se pudo registrar pedido:', e); }
 
-  // Construir mensaje WhatsApp
-  let msg='⚽ *Álbum Panini FIFA World Cup 2026*\n━━━━━━━━━━━━━━━━━━━━\n';
-  if(buyer) msg+=`👤 *Comprador:* ${buyer}\n━━━━━━━━━━━━━━━━━━━━\n`;
-  msg+='📋 *Láminas seleccionadas:*\n\n';
-  const byTeam={};
-  cart.forEach(i=>{if(!byTeam[i.teamName])byTeam[i.teamName]=[];byTeam[i.teamName].push(i);});
-  Object.entries(byTeam).forEach(([team,items])=>{
-    msg+=`*${team}:* ${items.map(i=>i.qty>1?`${i.label}×${i.qty}`:i.label).join(', ')}\n`;
+  // Construir mensaje WhatsApp (sin emojis para máxima compatibilidad)
+  let msg = '*Álbum Panini FIFA World Cup 2026*\n';
+  msg += '--------------------------------\n';
+  if(buyer) msg += `*${buyer}*\n--------------------------------\n`;
+  msg += '*Láminas seleccionadas:*\n\n';
+  const byTeam = {};
+  cart.forEach(i => { if(!byTeam[i.teamName]) byTeam[i.teamName] = []; byTeam[i.teamName].push(i); });
+  Object.entries(byTeam).forEach(([team, items]) => {
+    msg += `*${team}:* ${items.map(i => i.qty>1 ? `${i.label} x${i.qty}` : i.label).join(', ')}\n`;
   });
-  msg+=`\n━━━━━━━━━━━━━━━━━━━━\n📦 *Total láminas:* ${count}\n💰 *Total a pagar:* ${fmtPrice(total)}\n━━━━━━━━━━━━━━━━━━━━\n_laminas.scorevision.space_`;
-  window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`,'_blank');
+  msg += `\n--------------------------------\n`;
+  msg += `*Total láminas:* ${count}\n`;
+  msg += `*Total a pagar:* ${fmtPrice(total)}\n`;
+  msg += `--------------------------------\n`;
+  msg += `_laminas.scorevision.space_`;
+  window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
 // ── FILTRO DE EQUIPOS ────────────────────────────────────────
