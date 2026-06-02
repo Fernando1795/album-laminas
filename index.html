@@ -46,10 +46,21 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--white);min
 .cart-badge{position:absolute;top:-6px;right:-6px;background:var(--red);color:white;border-radius:50%;width:20px;height:20px;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
 
 /* TABS */
-.tabs{display:flex;background:var(--card);border-bottom:1px solid var(--border);max-width:900px;margin:0 auto;overflow-x:auto;scrollbar-width:none}
-.tabs::-webkit-scrollbar{display:none}
-.tab{flex:0 0 auto;padding:12px 18px;font-size:12px;font-weight:600;color:var(--grey3);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all 0.2s;letter-spacing:0.5px}
+.tabs{display:flex;align-items:center;gap:10px;background:var(--card);border-bottom:1px solid var(--border);max-width:900px;margin:0 auto;padding:0 14px}
+.tab{flex:0 0 auto;padding:12px 18px;font-size:13px;font-weight:600;color:var(--grey3);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all 0.2s;letter-spacing:0.5px}
 .tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+.search-team-wrap{flex:1;position:relative;display:flex;align-items:center;padding:8px 0}
+#teamSearch{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:9px 32px 9px 14px;color:var(--white);font-family:'Outfit',sans-serif;font-size:13px;outline:none;transition:border-color 0.2s}
+#teamSearch:focus{border-color:var(--gold)}
+#teamSearch::placeholder{color:rgba(255,255,255,0.4)}
+#teamClearBtn{position:absolute;right:6px;background:none;border:none;color:var(--grey3);width:24px;height:24px;border-radius:50%;cursor:pointer;font-size:14px;display:none;align-items:center;justify-content:center;padding:0}
+#teamClearBtn.show{display:flex}
+#teamClearBtn:hover{background:rgba(255,255,255,0.1);color:var(--white)}
+@media(max-width:480px){
+  .tabs{padding:0 10px;gap:6px}
+  .tab{padding:11px 12px;font-size:12px}
+  #teamSearch{font-size:12px;padding:8px 28px 8px 12px}
+}
 
 /* MAIN */
 .main{max-width:900px;margin:0 auto;padding:16px}
@@ -157,20 +168,11 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--white);min
     </button>
   </div>
   <div class="tabs" id="tabsContainer">
-    <div class="tab active" data-grp="ALL" onclick="filterGroup('ALL',this)">Todos</div>
-    <div class="tab" data-grp="—" onclick="filterGroup('—',this)">Especiales</div>
-    <div class="tab" data-grp="A" onclick="filterGroup('A',this)">Grupo A</div>
-    <div class="tab" data-grp="B" onclick="filterGroup('B',this)">Grupo B</div>
-    <div class="tab" data-grp="C" onclick="filterGroup('C',this)">Grupo C</div>
-    <div class="tab" data-grp="D" onclick="filterGroup('D',this)">Grupo D</div>
-    <div class="tab" data-grp="E" onclick="filterGroup('E',this)">Grupo E</div>
-    <div class="tab" data-grp="F" onclick="filterGroup('F',this)">Grupo F</div>
-    <div class="tab" data-grp="G" onclick="filterGroup('G',this)">Grupo G</div>
-    <div class="tab" data-grp="H" onclick="filterGroup('H',this)">Grupo H</div>
-    <div class="tab" data-grp="I" onclick="filterGroup('I',this)">Grupo I</div>
-    <div class="tab" data-grp="J" onclick="filterGroup('J',this)">Grupo J</div>
-    <div class="tab" data-grp="K" onclick="filterGroup('K',this)">Grupo K</div>
-    <div class="tab" data-grp="L" onclick="filterGroup('L',this)">Grupo L</div>
+    <div class="tab active" id="tabAll" onclick="resetFilter()">Todos</div>
+    <div class="search-team-wrap">
+      <input type="text" id="teamSearch" placeholder="🔍 Buscar equipo..." autocomplete="off" maxlength="40">
+      <button type="button" id="teamClearBtn" onclick="clearTeamSearch()" aria-label="Limpiar">✕</button>
+    </div>
   </div>
 </div>
 
@@ -285,7 +287,7 @@ function getLblShort(code,num){
 // ── ESTADO ───────────────────────────────────────────────────
 let inventory = {}; // {CODE_NUM: cantidad}
 let cart = [];
-let currentGroup = 'ALL';
+let teamFilter = '';
 
 function invKey(code,num){return `${code}_${num}`}
 
@@ -335,14 +337,22 @@ function updateCartBadge(){
 function cartTotal(){return cart.reduce((s,i)=>s+i.price*i.qty,0);}
 
 // ── RENDER ───────────────────────────────────────────────────
+function normTxt(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');}
+
 function renderContent(){
-  const groups = currentGroup==='ALL'
-    ? ['—','A','B','C','D','E','F','G','H','I','J','K','L']
-    : [currentGroup];
+  const groups = ['—','A','B','C','D','E','F','G','H','I','J','K','L'];
+  const q = normTxt(teamFilter);
   let html='';
+  let totalShown = 0;
   groups.forEach(grp=>{
-    const teams=ALBUM.filter(t=>t.group===grp);
+    let teams = ALBUM.filter(t=>t.group===grp);
+    if(q){
+      teams = teams.filter(t =>
+        normTxt(t.name).includes(q) || normTxt(t.code).includes(q)
+      );
+    }
     if(!teams.length)return;
+    totalShown += teams.length;
     const grpLabel=grp==='—'?'Especiales':`Grupo ${grp}`;
     html+=`<div class="group-header"><span class="group-label">${grpLabel}</span><div class="group-line"></div></div>`;
     teams.forEach(team=>{
@@ -377,6 +387,12 @@ function renderContent(){
       html+=`</div></div>`;
     });
   });
+  if(totalShown === 0 && q){
+    html = `<div style="text-align:center;color:var(--grey3);padding:60px 20px;font-size:14px">
+      <div style="font-size:40px;margin-bottom:12px">🔍</div>
+      No se encontraron equipos para "<strong style="color:var(--gold2)">${esc(teamFilter)}</strong>"
+    </div>`;
+  }
   document.getElementById('content').innerHTML=html;
 }
 
@@ -441,12 +457,24 @@ async function sendWhatsApp(){
   window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`,'_blank');
 }
 
-// ── TABS ─────────────────────────────────────────────────────
-function filterGroup(grp,el){
-  currentGroup=grp;
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  el.classList.add('active');
-  el.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+// ── FILTRO DE EQUIPOS ────────────────────────────────────────
+function resetFilter(){
+  teamFilter = '';
+  const input = document.getElementById('teamSearch');
+  if(input) input.value = '';
+  document.getElementById('teamClearBtn').classList.remove('show');
+  renderContent();
+}
+function clearTeamSearch(){
+  document.getElementById('teamSearch').value = '';
+  teamFilter = '';
+  document.getElementById('teamClearBtn').classList.remove('show');
+  renderContent();
+  document.getElementById('teamSearch').focus();
+}
+function onTeamSearchInput(e){
+  teamFilter = e.target.value.trim();
+  document.getElementById('teamClearBtn').classList.toggle('show', teamFilter.length > 0);
   renderContent();
 }
 
@@ -460,6 +488,7 @@ function showToast(msg){
 }
 
 // ── INIT ─────────────────────────────────────────────────────
+document.getElementById('teamSearch').addEventListener('input', onTeamSearchInput);
 loadInventory();
 </script>
 </body>
