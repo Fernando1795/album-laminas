@@ -56,20 +56,31 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--white);min
 
 /* HEADER */
 .header{background:linear-gradient(135deg,var(--navy) 0%,#1a2d5a 100%);border-bottom:2px solid var(--gold);padding:0;position:sticky;top:0;z-index:100}
-.header-inner{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;max-width:960px;margin:0 auto}
-.header-title h1{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--gold)}
+.header-inner{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;max-width:960px;margin:0 auto;gap:10px}
+.header-title h1{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--gold);line-height:1}
 .header-title span{font-size:10px;color:rgba(255,255,255,0.5);letter-spacing:1px;text-transform:uppercase}
-.btn-logout{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--grey3);border-radius:10px;padding:8px 14px;font-family:'Outfit',sans-serif;font-size:13px;cursor:pointer}
-.btn-ver-tienda{background:var(--gold);color:var(--navy);border:none;border-radius:10px;padding:8px 14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:5px}
+.btn-logout{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--grey3);border-radius:10px;padding:8px 12px;font-family:'Outfit',sans-serif;font-size:13px;cursor:pointer;white-space:nowrap}
+.btn-ver-tienda{background:var(--gold);color:var(--navy);border:none;border-radius:10px;padding:8px 12px;font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+@media(max-width:480px){
+  .header-title h1{font-size:17px;letter-spacing:1.5px}
+  .header-title span{font-size:9px}
+  .btn-logout,.btn-ver-tienda{padding:7px 10px;font-size:12px}
+  .btn-ver-tienda span,.btn-ver-tienda-text{display:none}
+}
 
 /* MAIN */
 .admin-main{max-width:960px;margin:0 auto;padding:20px 16px;flex:1}
 
 /* STATS */
-.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
-.stat-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center}
-.stat-num{font-family:'Bebas Neue',sans-serif;font-size:32px;color:var(--gold)}
-.stat-label{font-size:11px;color:var(--grey3);text-transform:uppercase;letter-spacing:0.5px}
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 8px;text-align:center}
+.stat-num{font-family:'Bebas Neue',sans-serif;font-size:30px;color:var(--gold);line-height:1.1}
+.stat-label{font-size:10px;color:var(--grey3);text-transform:uppercase;letter-spacing:0.4px;line-height:1.2}
+@media(max-width:480px){
+  .stat-num{font-size:24px}
+  .stat-label{font-size:9px}
+  .stat-card{padding:12px 6px}
+}
 
 /* PANEL INGRESO */
 .panel{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:24px}
@@ -92,21 +103,37 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--white);min
 .status-warn{background:rgba(200,168,75,0.15);color:var(--gold2);border:1px solid rgba(200,168,75,0.3)}
 
 /* TABLA INVENTARIO */
-.inv-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.inv-header h2{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--gold);letter-spacing:1px}
-.search-input{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:9px 14px;color:var(--white);font-family:'Outfit',sans-serif;font-size:13px;outline:none;width:180px}
+.inv-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:10px;flex-wrap:wrap}
+.inv-header h2{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--gold);letter-spacing:1px;flex:0 0 auto}
+.inv-header > div{display:flex;gap:8px;align-items:center;flex:1;justify-content:flex-end}
+.search-input{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:9px 14px;color:var(--white);font-family:'Outfit',sans-serif;font-size:13px;outline:none;width:180px;min-width:0;flex:1;max-width:200px}
+@media(max-width:480px){
+  .inv-header{flex-direction:column;align-items:stretch}
+  .inv-header h2{text-align:center;margin-bottom:4px}
+  .inv-header > div{justify-content:stretch;width:100%}
+  .search-input{max-width:none;flex:1}
+}
 .search-input:focus{border-color:var(--gold)}
 .search-input::placeholder{color:rgba(255,255,255,0.3)}
 .inv-table{width:100%;border-collapse:collapse}
-.inv-table th{font-size:11px;font-weight:700;color:var(--grey3);text-transform:uppercase;letter-spacing:0.5px;padding:8px 12px;border-bottom:1px solid var(--border);text-align:left}
-.inv-table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.06);font-size:13px;vertical-align:middle}
+.inv-table th{font-size:11px;font-weight:700;color:var(--grey3);text-transform:uppercase;letter-spacing:0.5px;padding:8px 10px;border-bottom:1px solid var(--border);text-align:left}
+.inv-table td{padding:10px;border-bottom:1px solid rgba(255,255,255,0.06);font-size:13px;vertical-align:middle}
 .inv-table tr:hover td{background:rgba(255,255,255,0.02)}
 .badge-code{font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--gold);letter-spacing:1px}
-.badge-group{display:inline-block;background:rgba(200,168,75,0.1);color:var(--gold2);border:1px solid rgba(200,168,75,0.25);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600}
+.badge-group{display:inline-block;background:rgba(200,168,75,0.1);color:var(--gold2);border:1px solid rgba(200,168,75,0.25);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600;white-space:nowrap}
 .badge-total{display:inline-flex;align-items:center;justify-content:center;background:rgba(46,125,50,0.2);color:#81c784;border:1px solid rgba(46,125,50,0.4);border-radius:8px;padding:3px 10px;font-weight:700;font-size:13px;min-width:32px}
-.laminas-list{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.laminas-list{display:flex;flex-wrap:wrap;gap:4px;margin-top:2px}
 .lam-chip{background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:2px 7px;font-size:12px;color:var(--white);white-space:nowrap}
 .lam-chip.multi{background:rgba(46,125,50,0.15);border-color:rgba(46,125,50,0.4);color:#81c784}
+@media(max-width:480px){
+  .inv-table th{padding:6px 4px;font-size:10px}
+  .inv-table td{padding:8px 4px;font-size:12px}
+  .badge-group{font-size:10px;padding:2px 6px}
+  .badge-code{font-size:13px}
+  .lam-chip{font-size:11px;padding:2px 6px}
+  .badge-total{font-size:12px;padding:2px 8px;min-width:28px}
+  .inv-table td:nth-child(2) span:last-child{font-size:10px !important}
+}
 .no-results{text-align:center;color:var(--grey3);padding:32px;font-size:14px}
 
 /* PEDIDOS */
@@ -125,8 +152,11 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--white);min
 
 /* TABS ADMIN */
 .admin-tabs{display:flex;gap:0;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:4px;margin-bottom:20px}
-.admin-tab{flex:1;padding:10px;text-align:center;font-size:13px;font-weight:600;color:var(--grey3);cursor:pointer;border-radius:8px;transition:all 0.2s}
+.admin-tab{flex:1;padding:10px 6px;text-align:center;font-size:13px;font-weight:600;color:var(--grey3);cursor:pointer;border-radius:8px;transition:all 0.2s;white-space:nowrap;line-height:1.2}
 .admin-tab.active{background:var(--navy2);color:var(--gold)}
+@media(max-width:480px){
+  .admin-tab{font-size:11px;padding:9px 4px;letter-spacing:0}
+}
 
 ::-webkit-scrollbar{width:4px}
 ::-webkit-scrollbar-track{background:transparent}

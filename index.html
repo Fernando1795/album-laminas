@@ -33,9 +33,14 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--white);min
 
 /* HEADER */
 .header{background:linear-gradient(135deg,var(--navy) 0%,#1a2d5a 100%);border-bottom:2px solid var(--gold);position:sticky;top:0;z-index:100;box-shadow:0 2px 20px rgba(0,0,0,0.5)}
-.header-inner{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;max-width:900px;margin:0 auto}
+.header-inner{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;max-width:900px;margin:0 auto;gap:10px}
+.header-title{flex:1;min-width:0}
 .header-title h1{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:2px;color:var(--gold);line-height:1}
-.header-title span{font-size:10px;color:rgba(255,255,255,0.5);letter-spacing:1px;text-transform:uppercase}
+.header-title span{font-size:10px;color:rgba(255,255,255,0.5);letter-spacing:1px;text-transform:uppercase;display:block;margin-top:3px}
+@media(max-width:480px){
+  .header-title h1{font-size:18px;letter-spacing:1.5px}
+  .header-title span{font-size:9px}
+}
 .cart-btn{position:relative;background:var(--gold);color:var(--navy);border:none;border-radius:12px;padding:10px 16px;font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all 0.2s}
 .cart-btn:active{transform:scale(0.96)}
 .cart-badge{position:absolute;top:-6px;right:-6px;background:var(--red);color:white;border-radius:50%;width:20px;height:20px;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
@@ -62,7 +67,12 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--white);min
 /* LEYENDA */
 .legend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;padding:12px 14px;background:var(--card);border-radius:12px;border:1px solid var(--border)}
 .legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(255,255,255,0.6)}
-.legend-dot{width:14px;height:14px;border-radius:4px}
+.legend-dot{width:14px;height:14px;border-radius:4px;flex-shrink:0}
+@media(max-width:480px){
+  .legend{gap:8px;padding:10px 12px}
+  .legend-item{font-size:10px}
+  .legend-dot{width:12px;height:12px}
+}
 
 /* GRUPO */
 .group-header{display:flex;align-items:center;gap:10px;margin:20px 0 12px}
@@ -79,14 +89,20 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--white);min
 
 /* GRID */
 .laminas-grid{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;padding:10px}
-@media(max-width:480px){.laminas-grid{grid-template-columns:repeat(7,1fr);gap:3px}}
-.lamina-cell{aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;font-weight:700;cursor:default;transition:all 0.15s;position:relative;min-height:36px;user-select:none;-webkit-user-select:none}
+@media(max-width:768px){.laminas-grid{grid-template-columns:repeat(7,1fr);gap:3px;padding:8px}}
+@media(max-width:380px){.laminas-grid{grid-template-columns:repeat(6,1fr);gap:3px}}
+.lamina-cell{aspect-ratio:1;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;font-weight:700;cursor:default;transition:all 0.15s;position:relative;min-height:36px;user-select:none;-webkit-user-select:none;overflow:hidden;padding:2px}
 .lamina-cell.empty{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.18);border:1px solid rgba(255,255,255,0.06)}
 .lamina-cell.has-rep{background:linear-gradient(135deg,var(--green) 0%,var(--green2) 100%);color:white;border:1px solid rgba(255,255,255,0.15);box-shadow:0 2px 8px rgba(46,125,50,0.3);cursor:pointer}
 .lamina-cell.has-rep:active{transform:scale(0.92)}
 .lamina-cell.in-cart{background:linear-gradient(135deg,var(--gold) 0%,var(--gold2) 100%);color:var(--navy);border:1px solid rgba(255,255,255,0.3);box-shadow:0 2px 12px rgba(200,168,75,0.4)}
-.lam-num{font-size:11px;font-weight:700;line-height:1}
+.lam-num{font-size:11px;font-weight:700;line-height:1;text-align:center}
 .lam-qty{font-size:9px;font-weight:600;opacity:0.85;line-height:1;margin-top:2px}
+@media(max-width:480px){
+  .lam-num{font-size:9.5px}
+  .lam-qty{font-size:8px}
+  .lamina-cell{min-height:32px}
+}
 .lam-price{font-size:8px;opacity:0.7;line-height:1}
 
 /* CARRITO MODAL */
@@ -259,6 +275,12 @@ function getLbl(code,num){
   if(code==='FWC') return `FWC-${String(num).padStart(2,'0')}`;
   return String(num);
 }
+// Versión corta para la celda (sin prefijo - ya se ve en el título de la sección)
+function getLblShort(code,num){
+  if(code==='CC') return String(num);
+  if(code==='FWC') return String(num).padStart(2,'0');
+  return String(num);
+}
 
 // ── ESTADO ───────────────────────────────────────────────────
 let inventory = {}; // {CODE_NUM: cantidad}
@@ -335,16 +357,17 @@ function renderContent(){
         <div class="laminas-grid">`;
       range.forEach(num=>{
         const qty=inventory[invKey(team.code,num)]||0;
-        const lbl=getLbl(team.code,num);
+        const lblShort=getLblShort(team.code,num);
+        const lblFull=getLbl(team.code,num);
         const price=getPrice(team.code,num);
         const inCart=getCartItem(team.code,num);
         const cartQty=inCart?inCart.qty:0;
         if(qty===0){
-          html+=`<div class="lamina-cell empty"><span class="lam-num">${lbl}</span></div>`;
+          html+=`<div class="lamina-cell empty" title="${lblFull}"><span class="lam-num">${lblShort}</span></div>`;
         } else {
           const full=cartQty>=qty;
-          html+=`<div class="lamina-cell ${full?'in-cart':'has-rep'}" onclick="${full?`showToast('Ya agregaste todas las copias')`:`addToCart('${team.code}',${num})`}">
-            <span class="lam-num">${lbl}</span>
+          html+=`<div class="lamina-cell ${full?'in-cart':'has-rep'}" title="${lblFull}" onclick="${full?`showToast('Ya agregaste todas las copias')`:`addToCart('${team.code}',${num})`}">
+            <span class="lam-num">${lblShort}</span>
             ${qty>1?`<span class="lam-qty">×${qty}</span>`:''}
             ${cartQty>0?`<span class="lam-qty" style="color:${full?'var(--navy)':'var(--gold2)'}">🛒${cartQty}</span>`:''}
             <span class="lam-price">${fmtPrice(price)}</span>
