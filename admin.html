@@ -82,15 +82,14 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--white);min
 .search-input::placeholder{color:rgba(255,255,255,0.3)}
 .inv-table{width:100%;border-collapse:collapse}
 .inv-table th{font-size:11px;font-weight:700;color:var(--grey3);text-transform:uppercase;letter-spacing:0.5px;padding:8px 12px;border-bottom:1px solid var(--border);text-align:left}
-.inv-table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:13px;vertical-align:middle}
+.inv-table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.06);font-size:13px;vertical-align:middle}
 .inv-table tr:hover td{background:rgba(255,255,255,0.02)}
 .badge-code{font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--gold);letter-spacing:1px}
-.badge-qty{display:inline-flex;align-items:center;justify-content:center;background:rgba(46,125,50,0.2);color:#81c784;border:1px solid rgba(46,125,50,0.4);border-radius:8px;padding:3px 10px;font-weight:700;font-size:13px;min-width:36px}
-.badge-price{color:var(--grey3);font-size:12px}
-.btn-row-sm{display:flex;gap:6px}
-.btn-sm-add{background:rgba(46,125,50,0.2);border:1px solid rgba(46,125,50,0.4);color:#81c784;border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;font-weight:700}
-.btn-sm-del{background:rgba(198,40,40,0.15);border:1px solid rgba(198,40,40,0.3);color:#ef9a9a;border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;font-weight:700}
-.btn-sm-add:active,.btn-sm-del:active{transform:scale(0.92)}
+.badge-group{display:inline-block;background:rgba(200,168,75,0.1);color:var(--gold2);border:1px solid rgba(200,168,75,0.25);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:600}
+.badge-total{display:inline-flex;align-items:center;justify-content:center;background:rgba(46,125,50,0.2);color:#81c784;border:1px solid rgba(46,125,50,0.4);border-radius:8px;padding:3px 10px;font-weight:700;font-size:13px;min-width:32px}
+.laminas-list{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.lam-chip{background:var(--card2);border:1px solid var(--border);border-radius:6px;padding:2px 7px;font-size:12px;color:var(--white);white-space:nowrap}
+.lam-chip.multi{background:rgba(46,125,50,0.15);border-color:rgba(46,125,50,0.4);color:#81c784}
 .no-results{text-align:center;color:var(--grey3);padding:32px;font-size:14px}
 
 /* PEDIDOS */
@@ -191,11 +190,10 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--white);min
           <table class="inv-table">
             <thead>
               <tr>
+                <th>Grupo</th>
                 <th>Equipo</th>
-                <th>Lámina</th>
-                <th>Cantidad</th>
-                <th>Precio</th>
-                <th>Acción</th>
+                <th>Láminas repetidas</th>
+                <th>Total</th>
               </tr>
             </thead>
             <tbody id="invTableBody"></tbody>
@@ -361,30 +359,50 @@ function updateStats(){
 
 function renderInventoryTable(){
   const q=(document.getElementById('searchInput').value||'').toUpperCase();
-  const filtered=inventory.filter(r=>
-    r.code.includes(q) ||
-    getLbl(r.code,r.num).includes(q) ||
-    (ALBUM.find(t=>t.code===r.code)?.name.toUpperCase().includes(q))
-  );
+
+  // Agrupar inventario por equipo siguiendo el orden de ALBUM
   const tbody=document.getElementById('invTableBody');
-  if(!filtered.length){tbody.innerHTML=`<tr><td colspan="5" class="no-results">Sin resultados</td></tr>`;return;}
-  tbody.innerHTML=filtered.map(r=>{
-    const team=ALBUM.find(t=>t.code===r.code);
-    const lbl=getLbl(r.code,r.num);
-    const price=getPrice(r.code,r.num);
-    return `<tr>
-      <td><span class="badge-code">${r.code}</span><br><span style="font-size:11px;color:var(--grey3)">${team?.name||''}</span></td>
-      <td style="font-weight:600">${lbl}</td>
-      <td><span class="badge-qty">×${r.cantidad}</span></td>
-      <td><span class="badge-price">${fmtPrice(price)}</span></td>
+  const rows=[];
+
+  ALBUM.forEach(team=>{
+    const laminas=inventory
+      .filter(r=>r.code===team.code)
+      .filter(r=>!q ||
+        team.code.includes(q) ||
+        team.name.toUpperCase().includes(q) ||
+        getLbl(r.code,r.num).toUpperCase().includes(q)
+      )
+      .sort((a,b)=>a.num-b.num);
+
+    if(!laminas.length) return;
+
+    const grupo = team.group==='—' ? 'Especiales' : `Grupo ${team.group}`;
+    const total = laminas.reduce((s,r)=>s+r.cantidad,0);
+
+    const chips = laminas.map(r=>{
+      const lbl=getLbl(r.code,r.num);
+      const multi=r.cantidad>1;
+      return `<span class="lam-chip${multi?' multi':''}">
+        ${lbl}${multi?` <strong>×${r.cantidad}</strong>`:''}
+      </span>`;
+    }).join('');
+
+    rows.push(`<tr>
+      <td><span class="badge-group">${grupo}</span></td>
       <td>
-        <div class="btn-row-sm">
-          <button class="btn-sm-add" onclick="quickAdd('${r.code}',${r.num})" title="Agregar una copia">+</button>
-          <button class="btn-sm-del" onclick="quickDel('${r.code}',${r.num})" title="Eliminar una copia">−</button>
-        </div>
+        <span class="badge-code">${team.code}</span><br>
+        <span style="font-size:11px;color:var(--grey3)">${team.name}</span>
       </td>
-    </tr>`;
-  }).join('');
+      <td><div class="laminas-list">${chips}</div></td>
+      <td><span class="badge-total">${total}</span></td>
+    </tr>`);
+  });
+
+  if(!rows.length){
+    tbody.innerHTML=`<tr><td colspan="4" class="no-results">Sin resultados</td></tr>`;
+    return;
+  }
+  tbody.innerHTML=rows.join('');
 }
 
 // ── OPERACIONES RÁPIDAS DESDE TABLA ──────────────────────────
