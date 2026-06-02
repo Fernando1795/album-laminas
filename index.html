@@ -3,9 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+  font-src https://fonts.gstatic.com;
+  img-src 'self' data:;
+  connect-src 'self' https://iqvociniwlaezxqhzhkk.supabase.co wss://iqvociniwlaezxqhzhkk.supabase.co;
+  frame-ancestors 'none';
+  base-uri 'self';
+  form-action https://wa.me;
+">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <title>Láminas Panini 2026 · Tienda</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"
+  integrity="sha384-tD6X9wDfTRdKpuPoHFZrVW2RXjSYSWjLBPWXxpHprWWl9eaHlwl05aRjHsiKF97n"
+  crossorigin="anonymous"></script>
 <style>
 :root {
   --navy:#0a1b3d; --navy2:#122554; --gold:#c8a84b; --gold2:#e8c86a;
@@ -169,7 +183,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--white);min
     </div>
     <div class="cart-items" id="cartItems"></div>
     <div class="cart-footer">
-      <input class="buyer-input" id="buyerName" placeholder="Tu nombre (opcional)" type="text">
+      <input class="buyer-input" id="buyerName" placeholder="Tu nombre (opcional)" type="text" maxlength="100" autocomplete="off">
       <div class="cart-total-row">
         <div>
           <div class="cart-total-label">Total a pagar</div>
@@ -194,6 +208,9 @@ const SUPABASE_URL = 'https://iqvociniwlaezxqhzhkk.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlxdm9jaW5pd2xhZXp4cWh6aGtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NTUwNjIsImV4cCI6MjA5NTAzMTA2Mn0.owR1unjzsS0NK_qJgMhDUVmqo1Q5ANIR4h_r_8RIToE';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const WA_NUMBER = '573124845376';
+
+// ── ANTI-XSS ─────────────────────────────────────────────────
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
 
 // ── ÁLBUM DATA ───────────────────────────────────────────────
 const ALBUM = [
@@ -357,20 +374,38 @@ function renderCartItems(){
       <div class="cart-item-info">
         <div class="cart-item-dot"></div>
         <div>
-          <div class="cart-item-label">${item.label} — ${item.teamName}</div>
-          <div class="cart-item-sub">${fmtPrice(item.price)} c/u${item.qty>1?` × ${item.qty}`:''}</div>
+          <div class="cart-item-label">${esc(item.label)} — ${esc(item.teamName)}</div>
+          <div class="cart-item-sub">${esc(fmtPrice(item.price))} c/u${item.qty>1?` × ${Number(item.qty)|0}`:''}</div>
         </div>
       </div>
-      <div class="cart-item-price">${fmtPrice(item.price*item.qty)}</div>
-      <button class="cart-item-remove" onclick="removeFromCart('${item.code}',${item.num});renderCartItems()">−</button>
+      <div class="cart-item-price">${esc(fmtPrice(item.price*item.qty))}</div>
+      <button class="cart-item-remove" onclick="removeFromCart('${esc(item.code)}',${Number(item.num)|0});renderCartItems()">−</button>
     </div>`).join('');
 }
 
-function sendWhatsApp(){
+async function sendWhatsApp(){
   if(!cart.length){showToast('Tu carrito está vacío');return;}
-  const buyer=document.getElementById('buyerName').value.trim();
-  const total=cartTotal();
-  const count=cart.reduce((s,i)=>s+i.qty,0);
+  const buyerRaw = document.getElementById('buyerName').value.trim();
+  const buyer = buyerRaw.slice(0, 100); // límite de seguridad
+  const total = cartTotal();
+  const count = cart.reduce((s,i)=>s+i.qty,0);
+
+  // Validaciones cliente
+  if(count < 1 || count > 200){ showToast('Cantidad de láminas no válida'); return; }
+  if(total < 1 || total > 5000000){ showToast('Total fuera de rango'); return; }
+  if(cart.length > 200){ showToast('Carrito demasiado grande'); return; }
+
+  // Registrar pedido en BD (no bloquea WhatsApp si falla)
+  try {
+    await sb.from('repetidas_pedidos').insert({
+      comprador: buyer || null,
+      items: cart,
+      total_laminas: count,
+      total_precio: total
+    });
+  } catch(e){ console.warn('No se pudo registrar pedido:', e); }
+
+  // Construir mensaje WhatsApp
   let msg='⚽ *Álbum Panini FIFA World Cup 2026*\n━━━━━━━━━━━━━━━━━━━━\n';
   if(buyer) msg+=`👤 *Comprador:* ${buyer}\n━━━━━━━━━━━━━━━━━━━━\n`;
   msg+='📋 *Láminas seleccionadas:*\n\n';

@@ -3,10 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+  font-src https://fonts.gstatic.com;
+  img-src 'self' data:;
+  connect-src 'self' https://iqvociniwlaezxqhzhkk.supabase.co https://iqvociniwlaezxqhzhkk.functions.supabase.co;
+  frame-ancestors 'none';
+  base-uri 'self';
+  form-action 'self';
+">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="robots" content="noindex,nofollow">
 <title>Admin · Láminas Panini 2026</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"
+  integrity="sha384-tD6X9wDfTRdKpuPoHFZrVW2RXjSYSWjLBPWXxpHprWWl9eaHlwl05aRjHsiKF97n"
+  crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"
+  integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw"
+  crossorigin="anonymous"></script>
 <style>
 :root{
   --navy:#0a1b3d;--navy2:#122554;--gold:#c8a84b;--gold2:#e8c86a;
@@ -118,30 +135,19 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--white);min
 </head>
 <body>
 
-<!-- PIN SCREEN -->
+<!-- LOGIN SCREEN (token) -->
 <div class="pin-screen" id="pinScreen">
   <div class="pin-card">
     <div class="pin-logo">⚽ Panel Admin</div>
     <div class="pin-sub">Láminas Panini 2026 · Acceso restringido</div>
-    <div class="pin-dots" id="pinDots">
-      <div class="pin-dot"></div><div class="pin-dot"></div>
-      <div class="pin-dot"></div><div class="pin-dot"></div>
-      <div class="pin-dot"></div><div class="pin-dot"></div>
-    </div>
-    <div class="pin-keypad">
-      <div class="pin-key" onclick="pinPress('1')">1</div>
-      <div class="pin-key" onclick="pinPress('2')">2</div>
-      <div class="pin-key" onclick="pinPress('3')">3</div>
-      <div class="pin-key" onclick="pinPress('4')">4</div>
-      <div class="pin-key" onclick="pinPress('5')">5</div>
-      <div class="pin-key" onclick="pinPress('6')">6</div>
-      <div class="pin-key" onclick="pinPress('7')">7</div>
-      <div class="pin-key" onclick="pinPress('8')">8</div>
-      <div class="pin-key" onclick="pinPress('9')">9</div>
-      <div class="pin-key empty"></div>
-      <div class="pin-key" onclick="pinPress('0')">0</div>
-      <div class="pin-key del" onclick="pinDel()">⌫</div>
-    </div>
+    <form id="tokenForm" autocomplete="off" style="margin-top:24px">
+      <input type="password" id="tokenInput" placeholder="Token de acceso" autocomplete="off"
+        style="width:100%;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:14px 16px;color:var(--white);font-family:'Outfit',sans-serif;font-size:15px;outline:none;text-align:center;letter-spacing:1px">
+      <button type="submit" id="tokenBtn"
+        style="margin-top:14px;width:100%;background:var(--gold);color:var(--navy);border:none;border-radius:12px;padding:14px;font-family:'Outfit',sans-serif;font-weight:700;font-size:15px;cursor:pointer">
+        Ingresar
+      </button>
+    </form>
     <div class="pin-error" id="pinError"></div>
   </div>
 </div>
@@ -241,9 +247,24 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--white);min
 // ── SUPABASE ─────────────────────────────────────────────────
 const SUPABASE_URL = 'https://iqvociniwlaezxqhzhkk.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlxdm9jaW5pd2xhZXp4cWh6aGtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NTUwNjIsImV4cCI6MjA5NTAzMTA2Mn0.owR1unjzsS0NK_qJgMhDUVmqo1Q5ANIR4h_r_8RIToE';
+const ADMIN_API = `${SUPABASE_URL}/functions/v1/admin-api`;
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const CORRECT_PIN = '951117';
+// ── ANTI-XSS ─────────────────────────────────────────────────
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);}
+
+// ── LLAMADA A ADMIN API ──────────────────────────────────────
+let adminToken = '';
+async function adminCall(action, payload){
+  const res = await fetch(ADMIN_API, {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ token: adminToken, action, payload })
+  });
+  const json = await res.json();
+  if(!res.ok) throw new Error(json.error || 'Error');
+  return json.data;
+}
 
 // ── ÁLBUM DATA ───────────────────────────────────────────────
 const ALBUM = [
@@ -299,54 +320,50 @@ function parseNum(input){
   return isNaN(n)?null:n;
 }
 
-// ── PIN ──────────────────────────────────────────────────────
-let pinValue='';
-
-function pinPress(d){
-  if(pinValue.length>=6) return;
-  pinValue+=d;
-  updateDots();
-  if(pinValue.length===6) setTimeout(checkPin,150);
-}
-function pinDel(){
-  pinValue=pinValue.slice(0,-1);
-  updateDots();
-  document.getElementById('pinError').textContent='';
-}
-function updateDots(){
-  const dots=document.querySelectorAll('.pin-dot');
-  dots.forEach((d,i)=>{
-    d.classList.remove('filled','error');
-    if(i<pinValue.length) d.classList.add('filled');
-  });
-}
-function checkPin(){
-  if(pinValue===CORRECT_PIN){
-    sessionStorage.setItem('admin_auth','1');
+// ── AUTENTICACIÓN POR TOKEN ──────────────────────────────────
+document.getElementById('tokenForm').addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const t = document.getElementById('tokenInput').value.trim();
+  if(!t){return;}
+  const btn = document.getElementById('tokenBtn');
+  btn.disabled = true; btn.textContent = 'Validando...';
+  try {
+    adminToken = t;
+    // Probar con una acción real (lista inventario)
+    await adminCall('inventory.list');
+    sessionStorage.setItem('admin_token', t);
     document.getElementById('pinScreen').style.display='none';
     document.getElementById('adminLayout').style.display='flex';
     initAdmin();
-  } else {
-    document.querySelectorAll('.pin-dot').forEach(d=>{d.classList.remove('filled');d.classList.add('error');});
-    document.getElementById('pinError').textContent='PIN incorrecto. Intenta de nuevo.';
-    setTimeout(()=>{
-      pinValue='';
-      updateDots();
-      document.getElementById('pinError').textContent='';
-    },1200);
+  } catch(err) {
+    document.getElementById('pinError').textContent = 'Token inválido';
+    document.getElementById('tokenInput').value = '';
+    adminToken = '';
+    setTimeout(()=>{document.getElementById('pinError').textContent='';}, 2200);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Ingresar';
   }
+});
+
+function logout(){
+  sessionStorage.removeItem('admin_token');
+  adminToken = '';
+  location.reload();
 }
-function logout(){sessionStorage.removeItem('admin_auth');location.reload();}
 
 // ── ESTADO ───────────────────────────────────────────────────
 let inventory = [];
 
 async function loadInventory(){
-  const {data,error}=await sb.from('repetidas_inventario').select('*').order('code').order('num');
-  if(error){showToast('Error cargando inventario');console.error(error);return;}
-  inventory=data||[];
-  updateStats();
-  renderInventoryTable();
+  try {
+    const data = await adminCall('inventory.list');
+    inventory = data || [];
+    updateStats();
+    renderInventoryTable();
+  } catch(err) {
+    showToast('Error cargando inventario');
+    console.error(err);
+  }
 }
 
 function updateStats(){
@@ -407,33 +424,30 @@ function renderInventoryTable(){
 
 // ── OPERACIONES RÁPIDAS DESDE TABLA ──────────────────────────
 async function quickAdd(code,num){
-  const row=inventory.find(r=>r.code===code&&r.num===num);
-  if(!row) return;
-  const newQty=row.cantidad+1;
-  const {error}=await sb.from('repetidas_inventario').update({cantidad:newQty,updated_at:new Date().toISOString()}).eq('code',code).eq('num',num);
-  if(error){showToast('Error al actualizar');return;}
-  row.cantidad=newQty;
-  updateStats();
-  renderInventoryTable();
-  showToast(`${getLbl(code,num)} → ×${newQty}`);
+  try {
+    const data = await adminCall('inventory.increment',{code,num});
+    const row = inventory.find(r=>r.code===code&&r.num===num);
+    if(row){ row.cantidad = data.cantidad; }
+    else   { inventory.push(data); }
+    updateStats();
+    renderInventoryTable();
+    showToast(`${getLbl(code,num)} → ×${data.cantidad}`);
+  } catch(err){ showToast('Error: '+err.message); }
 }
 
 async function quickDel(code,num){
-  const row=inventory.find(r=>r.code===code&&r.num===num);
-  if(!row) return;
-  if(row.cantidad<=1){
-    const {error}=await sb.from('repetidas_inventario').delete().eq('code',code).eq('num',num);
-    if(error){showToast('Error al eliminar');return;}
-    inventory=inventory.filter(r=>!(r.code===code&&r.num===num));
-  } else {
-    const newQty=row.cantidad-1;
-    const {error}=await sb.from('repetidas_inventario').update({cantidad:newQty,updated_at:new Date().toISOString()}).eq('code',code).eq('num',num);
-    if(error){showToast('Error al actualizar');return;}
-    row.cantidad=newQty;
-  }
-  updateStats();
-  renderInventoryTable();
-  showToast(`${getLbl(code,num)} actualizada`);
+  try {
+    const data = await adminCall('inventory.decrement',{code,num});
+    if(data && data.deleted){
+      inventory = inventory.filter(r=>!(r.code===code&&r.num===num));
+    } else {
+      const row = inventory.find(r=>r.code===code&&r.num===num);
+      if(row) row.cantidad = data.cantidad;
+    }
+    updateStats();
+    renderInventoryTable();
+    showToast(`${getLbl(code,num)} actualizada`);
+  } catch(err){ showToast('Error: '+err.message); }
 }
 
 // ── AGREGAR / ELIMINAR MANUAL ─────────────────────────────────
@@ -445,22 +459,16 @@ async function agregarLamina(){
   const num=parseNum(input);
   const range=getRange(code);
   if(num===null||!range.includes(num)){showStatus(`Número fuera de rango para ${code}`,'err');return;}
-  const existing=inventory.find(r=>r.code===code&&r.num===num);
-  let newQty=1;
-  if(existing){
-    newQty=existing.cantidad+1;
-    const {error}=await sb.from('repetidas_inventario').update({cantidad:newQty,updated_at:new Date().toISOString()}).eq('code',code).eq('num',num);
-    if(error){showStatus('Error al actualizar','err');return;}
-    existing.cantidad=newQty;
-  } else {
-    const {data,error}=await sb.from('repetidas_inventario').insert({code,num,cantidad:1}).select().single();
-    if(error){showStatus('Error al agregar','err');return;}
-    inventory.push(data);
-  }
-  updateStats();
-  renderInventoryTable();
-  document.getElementById('addLamina').value='';
-  showStatus(`${code} · ${getLbl(code,num)} ${newQty>1?`→ ahora ×${newQty}`:'agregada correctamente'}`,'ok');
+  try {
+    const data = await adminCall('inventory.increment',{code,num});
+    const existing = inventory.find(r=>r.code===code&&r.num===num);
+    if(existing){ existing.cantidad = data.cantidad; }
+    else        { inventory.push(data); }
+    updateStats();
+    renderInventoryTable();
+    document.getElementById('addLamina').value='';
+    showStatus(`${code} · ${getLbl(code,num)} ${data.cantidad>1?`→ ahora ×${data.cantidad}`:'agregada correctamente'}`,'ok');
+  } catch(err){ showStatus('Error: '+err.message,'err'); }
 }
 
 async function eliminarLamina(){
@@ -472,43 +480,45 @@ async function eliminarLamina(){
   if(num===null){showStatus('Número inválido','err');return;}
   const existing=inventory.find(r=>r.code===code&&r.num===num);
   if(!existing){showStatus(`No se encontró ${getLbl(code,num)} en ${code}`,'warn');return;}
-  if(existing.cantidad<=1){
-    const {error}=await sb.from('repetidas_inventario').delete().eq('code',code).eq('num',num);
-    if(error){showStatus('Error al eliminar','err');return;}
-    inventory=inventory.filter(r=>!(r.code===code&&r.num===num));
-    showStatus(`${code} · ${getLbl(code,num)} eliminada completamente`,'ok');
-  } else {
-    const newQty=existing.cantidad-1;
-    const {error}=await sb.from('repetidas_inventario').update({cantidad:newQty,updated_at:new Date().toISOString()}).eq('code',code).eq('num',num);
-    if(error){showStatus('Error al actualizar','err');return;}
-    existing.cantidad=newQty;
-    showStatus(`${code} · ${getLbl(code,num)} → quedan ×${newQty}`,'ok');
-  }
-  updateStats();
-  renderInventoryTable();
-  document.getElementById('addLamina').value='';
+  try {
+    const data = await adminCall('inventory.decrement',{code,num});
+    if(data && data.deleted){
+      inventory = inventory.filter(r=>!(r.code===code&&r.num===num));
+      showStatus(`${code} · ${getLbl(code,num)} eliminada completamente`,'ok');
+    } else {
+      existing.cantidad = data.cantidad;
+      showStatus(`${code} · ${getLbl(code,num)} → quedan ×${data.cantidad}`,'ok');
+    }
+    updateStats();
+    renderInventoryTable();
+    document.getElementById('addLamina').value='';
+  } catch(err){ showStatus('Error: '+err.message,'err'); }
 }
 
 // ── PEDIDOS ──────────────────────────────────────────────────
 async function loadPedidos(){
-  const {data,error}=await sb.from('repetidas_pedidos').select('*').order('created_at',{ascending:false}).limit(50);
   const container=document.getElementById('pedidosList');
-  if(error||!data?.length){container.innerHTML='<div class="no-results">No hay pedidos registrados aún</div>';return;}
+  let data;
+  try { data = await adminCall('pedidos.list'); }
+  catch(err){ container.innerHTML='<div class="no-results">Error: '+esc(err.message)+'</div>'; return; }
+  if(!data?.length){container.innerHTML='<div class="no-results">No hay pedidos registrados aún</div>';return;}
   container.innerHTML=data.map(p=>{
-    const items=typeof p.items==='string'?JSON.parse(p.items):p.items;
+    const items = typeof p.items==='string' ? JSON.parse(p.items) : p.items;
     const byTeam={};
     items.forEach(i=>{if(!byTeam[i.teamName])byTeam[i.teamName]=[];byTeam[i.teamName].push(i);});
-    const itemsText=Object.entries(byTeam).map(([t,its])=>`<strong>${t}:</strong> ${its.map(i=>i.qty>1?`${i.label}×${i.qty}`:i.label).join(', ')}`).join(' · ');
-    const date=new Date(p.created_at).toLocaleString('es-CO',{dateStyle:'short',timeStyle:'short'});
+    const itemsText = Object.entries(byTeam).map(([t,its])=>
+      `<strong>${esc(t)}:</strong> ${its.map(i=>i.qty>1?`${esc(i.label)}×${Number(i.qty)|0}`:esc(i.label)).join(', ')}`
+    ).join(' · ');
+    const date = new Date(p.created_at).toLocaleString('es-CO',{dateStyle:'short',timeStyle:'short'});
     return `<div class="pedido-card">
       <div class="pedido-header">
-        <span class="pedido-buyer">👤 ${p.comprador||'Anónimo'}</span>
-        <span class="pedido-date">${date}</span>
+        <span class="pedido-buyer">👤 ${esc(p.comprador||'Anónimo')}</span>
+        <span class="pedido-date">${esc(date)}</span>
       </div>
       <div class="pedido-items">${itemsText}</div>
       <div class="pedido-footer">
-        <span class="pedido-count">${p.total_laminas} lámina${p.total_laminas!==1?'s':''}</span>
-        <span class="pedido-total">${fmtPrice(p.total_precio)}</span>
+        <span class="pedido-count">${Number(p.total_laminas)|0} lámina${p.total_laminas!==1?'s':''}</span>
+        <span class="pedido-total">${esc(fmtPrice(p.total_precio))}</span>
       </div>
     </div>`;
   }).join('');
@@ -602,11 +612,20 @@ function initAdmin(){
 }
 
 // ── ARRANQUE ─────────────────────────────────────────────────
-if(sessionStorage.getItem('admin_auth')==='1'){
-  document.getElementById('pinScreen').style.display='none';
-  document.getElementById('adminLayout').style.display='flex';
-  initAdmin();
-}
+(async ()=>{
+  const saved = sessionStorage.getItem('admin_token');
+  if(!saved) return;
+  adminToken = saved;
+  try {
+    await adminCall('inventory.list');
+    document.getElementById('pinScreen').style.display='none';
+    document.getElementById('adminLayout').style.display='flex';
+    initAdmin();
+  } catch {
+    sessionStorage.removeItem('admin_token');
+    adminToken = '';
+  }
+})();
 </script>
 </body>
 </html>
