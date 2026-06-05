@@ -416,7 +416,7 @@ function renderCartItems(){
     </div>`).join('');
 }
 
-async function sendWhatsApp(){
+function sendWhatsApp(){
   if(!cart.length){showToast('Tu carrito está vacío');return;}
   const buyerRaw = document.getElementById('buyerName').value.trim();
   const buyer = buyerRaw.slice(0, 100); // límite de seguridad
@@ -427,16 +427,6 @@ async function sendWhatsApp(){
   if(count < 1 || count > 200){ showToast('Cantidad de láminas no válida'); return; }
   if(total < 1 || total > 5000000){ showToast('Total fuera de rango'); return; }
   if(cart.length > 200){ showToast('Carrito demasiado grande'); return; }
-
-  // Registrar pedido en BD (no bloquea WhatsApp si falla)
-  try {
-    await sb.from('repetidas_pedidos').insert({
-      comprador: buyer || null,
-      items: cart,
-      total_laminas: count,
-      total_precio: total
-    });
-  } catch(e){ console.warn('No se pudo registrar pedido:', e); }
 
   // Construir mensaje WhatsApp (sin emojis para máxima compatibilidad)
   let msg = '*Álbum Panini FIFA World Cup 2026*\n';
@@ -453,7 +443,31 @@ async function sendWhatsApp(){
   msg += `*Total a pagar:* ${fmtPrice(total)}\n`;
   msg += `--------------------------------\n`;
   msg += `_laminas.scorevision.space_`;
-  window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`, '_blank');
+
+  // Registrar pedido en BD SIN bloquear (fire-and-forget para no perder el user gesture)
+  try {
+    sb.from('repetidas_pedidos').insert({
+      comprador: buyer || null,
+      items: cart,
+      total_laminas: count,
+      total_precio: total
+    }).then(r => { if(r.error) console.warn('Pedido no registrado:', r.error); });
+  } catch(e){ console.warn(e); }
+
+  // Detectar móvil/escritorio para elegir la mejor URL
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const waUrl = isMobile
+    ? `https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`
+    : `https://web.whatsapp.com/send?phone=${WA_NUMBER}&text=${encodeURIComponent(msg)}`;
+
+  // Abrir con <a> programático (más confiable que window.open contra popup blockers)
+  const a = document.createElement('a');
+  a.href = waUrl;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 // ── FILTRO DE EQUIPOS ────────────────────────────────────────
