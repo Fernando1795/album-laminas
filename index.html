@@ -290,7 +290,23 @@ const ALBUM = [
   {code:"GHA",name:"Ghana",group:"L"},{code:"PAN",name:"Panamá",group:"L"},
 ];
 
+// Precios especiales por lámina concreta (code → {num: precio})
+const PRICE_OVERRIDES = {
+  COL: {12:5000, 20:20000},
+  CRO: {9:5000},
+  ARG: {18:5000},
+  NOR: {15:10000},
+  FRA: {15:7000, 20:20000},
+  FWC: {0:15000, 4:20000},
+};
+// Precio por defecto para TODAS las láminas de un equipo (salvo overrides arriba)
+const TEAM_DEFAULT_PRICE = {
+  COL: 3000,
+};
 function getPrice(code,num){
+  const ov = PRICE_OVERRIDES[code];
+  if(ov && ov[num]!=null) return ov[num];
+  if(TEAM_DEFAULT_PRICE[code]!=null) return TEAM_DEFAULT_PRICE[code];
   if(code==='CC') return 9000;
   if(code==='FWC') return 6000;
   if(num===1) return 4000;
