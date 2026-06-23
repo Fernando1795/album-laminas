@@ -485,7 +485,14 @@ function sendWhatsApp(){
   const byTeam = {};
   cart.forEach(i => { if(!byTeam[i.teamName]) byTeam[i.teamName] = []; byTeam[i.teamName].push(i); });
   Object.entries(byTeam).forEach(([team, items]) => {
-    msg += `*${team}:* ${items.map(i => i.qty>1 ? `${i.label} x${i.qty}` : i.label).join(', ')}\n`;
+    msg += `*${team}:*\n`;
+    items.forEach(i => {
+      if(i.qty>1){
+        msg += `  • ${i.label} x${i.qty} — ${fmtPrice(i.price)} c/u (${fmtPrice(i.price*i.qty)})\n`;
+      } else {
+        msg += `  • ${i.label} — ${fmtPrice(i.price)}\n`;
+      }
+    });
   });
   msg += `\n--------------------------------\n`;
   msg += `*Total láminas:* ${count}\n`;
